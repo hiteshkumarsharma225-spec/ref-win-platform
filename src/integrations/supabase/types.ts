@@ -14,16 +14,388 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      battle_results: {
+        Row: {
+          battle_id: string
+          claim: Database["public"]["Enums"]["result_claim"]
+          created_at: string
+          id: string
+          screenshot_url: string | null
+          user_id: string
+        }
+        Insert: {
+          battle_id: string
+          claim: Database["public"]["Enums"]["result_claim"]
+          created_at?: string
+          id?: string
+          screenshot_url?: string | null
+          user_id: string
+        }
+        Update: {
+          battle_id?: string
+          claim?: Database["public"]["Enums"]["result_claim"]
+          created_at?: string
+          id?: string
+          screenshot_url?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "battle_results_battle_id_fkey"
+            columns: ["battle_id"]
+            isOneToOne: false
+            referencedRelation: "battles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      battles: {
+        Row: {
+          amount: number
+          created_at: string
+          creator_id: string
+          game: string
+          id: string
+          opponent_id: string | null
+          prize: number
+          room_code: string | null
+          settled_at: string | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["battle_status"]
+          winner_id: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          creator_id: string
+          game: string
+          id?: string
+          opponent_id?: string | null
+          prize: number
+          room_code?: string | null
+          settled_at?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["battle_status"]
+          winner_id?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          creator_id?: string
+          game?: string
+          id?: string
+          opponent_id?: string | null
+          prize?: number
+          room_code?: string | null
+          settled_at?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["battle_status"]
+          winner_id?: string | null
+        }
+        Relationships: []
+      }
+      deposit_requests: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          processed_at: string | null
+          status: Database["public"]["Enums"]["txn_status"]
+          user_id: string
+          utr: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          processed_at?: string | null
+          status?: Database["public"]["Enums"]["txn_status"]
+          user_id: string
+          utr?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          processed_at?: string | null
+          status?: Database["public"]["Enums"]["txn_status"]
+          user_id?: string
+          utr?: string | null
+        }
+        Relationships: []
+      }
+      kyc_submissions: {
+        Row: {
+          admin_note: string | null
+          created_at: string
+          doc_number: string
+          doc_type: string
+          doc_url: string | null
+          full_name: string
+          id: string
+          status: Database["public"]["Enums"]["kyc_status"]
+          user_id: string
+        }
+        Insert: {
+          admin_note?: string | null
+          created_at?: string
+          doc_number: string
+          doc_type: string
+          doc_url?: string | null
+          full_name: string
+          id?: string
+          status?: Database["public"]["Enums"]["kyc_status"]
+          user_id: string
+        }
+        Update: {
+          admin_note?: string | null
+          created_at?: string
+          doc_number?: string
+          doc_type?: string
+          doc_url?: string | null
+          full_name?: string
+          id?: string
+          status?: Database["public"]["Enums"]["kyc_status"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          battles_lost: number
+          battles_won: number
+          created_at: string
+          id: string
+          kyc_status: Database["public"]["Enums"]["kyc_status"]
+          phone: string
+          referral_code: string
+          referred_by: string | null
+          username: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          battles_lost?: number
+          battles_won?: number
+          created_at?: string
+          id: string
+          kyc_status?: Database["public"]["Enums"]["kyc_status"]
+          phone: string
+          referral_code: string
+          referred_by?: string | null
+          username: string
+        }
+        Update: {
+          avatar_url?: string | null
+          battles_lost?: number
+          battles_won?: number
+          created_at?: string
+          id?: string
+          kyc_status?: Database["public"]["Enums"]["kyc_status"]
+          phone?: string
+          referral_code?: string
+          referred_by?: string | null
+          username?: string
+        }
+        Relationships: []
+      }
+      referral_earnings: {
+        Row: {
+          amount: number
+          battle_id: string | null
+          created_at: string
+          id: string
+          referred_id: string
+          referrer_id: string
+        }
+        Insert: {
+          amount: number
+          battle_id?: string | null
+          created_at?: string
+          id?: string
+          referred_id: string
+          referrer_id: string
+        }
+        Update: {
+          amount?: number
+          battle_id?: string | null
+          created_at?: string
+          id?: string
+          referred_id?: string
+          referrer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_earnings_battle_id_fkey"
+            columns: ["battle_id"]
+            isOneToOne: false
+            referencedRelation: "battles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          meta: Json
+          note: string | null
+          status: Database["public"]["Enums"]["txn_status"]
+          type: Database["public"]["Enums"]["txn_type"]
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          meta?: Json
+          note?: string | null
+          status?: Database["public"]["Enums"]["txn_status"]
+          type: Database["public"]["Enums"]["txn_type"]
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          meta?: Json
+          note?: string | null
+          status?: Database["public"]["Enums"]["txn_status"]
+          type?: Database["public"]["Enums"]["txn_type"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      wallets: {
+        Row: {
+          bonus_cash: number
+          deposit_cash: number
+          updated_at: string
+          user_id: string
+          winning_cash: number
+        }
+        Insert: {
+          bonus_cash?: number
+          deposit_cash?: number
+          updated_at?: string
+          user_id: string
+          winning_cash?: number
+        }
+        Update: {
+          bonus_cash?: number
+          deposit_cash?: number
+          updated_at?: string
+          user_id?: string
+          winning_cash?: number
+        }
+        Relationships: []
+      }
+      withdrawals: {
+        Row: {
+          account_name: string | null
+          account_number: string | null
+          admin_note: string | null
+          amount: number
+          created_at: string
+          id: string
+          ifsc: string | null
+          method: string
+          processed_at: string | null
+          status: Database["public"]["Enums"]["txn_status"]
+          upi_id: string | null
+          user_id: string
+        }
+        Insert: {
+          account_name?: string | null
+          account_number?: string | null
+          admin_note?: string | null
+          amount: number
+          created_at?: string
+          id?: string
+          ifsc?: string | null
+          method: string
+          processed_at?: string | null
+          status?: Database["public"]["Enums"]["txn_status"]
+          upi_id?: string | null
+          user_id: string
+        }
+        Update: {
+          account_name?: string | null
+          account_number?: string | null
+          admin_note?: string | null
+          amount?: number
+          created_at?: string
+          id?: string
+          ifsc?: string | null
+          method?: string
+          processed_at?: string | null
+          status?: Database["public"]["Enums"]["txn_status"]
+          upi_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      wallet_credit: {
+        Args: { _amount: number; _bucket: string; _user: string }
+        Returns: undefined
+      }
+      wallet_debit: {
+        Args: { _amount: number; _user: string }
+        Returns: undefined
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "moderator" | "user"
+      battle_status:
+        | "open"
+        | "running"
+        | "result_pending"
+        | "disputed"
+        | "completed"
+        | "cancelled"
+      kyc_status: "not_submitted" | "pending" | "approved" | "rejected"
+      result_claim: "won" | "lost" | "cancel"
+      txn_status: "pending" | "approved" | "completed" | "rejected"
+      txn_type:
+        | "deposit"
+        | "withdrawal"
+        | "bet"
+        | "winning"
+        | "referral"
+        | "bonus"
+        | "refund"
+        | "penalty"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +522,29 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "moderator", "user"],
+      battle_status: [
+        "open",
+        "running",
+        "result_pending",
+        "disputed",
+        "completed",
+        "cancelled",
+      ],
+      kyc_status: ["not_submitted", "pending", "approved", "rejected"],
+      result_claim: ["won", "lost", "cancel"],
+      txn_status: ["pending", "approved", "completed", "rejected"],
+      txn_type: [
+        "deposit",
+        "withdrawal",
+        "bet",
+        "winning",
+        "referral",
+        "bonus",
+        "refund",
+        "penalty",
+      ],
+    },
   },
 } as const
