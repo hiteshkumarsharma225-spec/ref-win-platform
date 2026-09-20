@@ -359,12 +359,76 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_battle: { Args: { p_battle: string }; Returns: undefined }
+      admin_metrics: { Args: never; Returns: Json }
+      admin_process_deposit: {
+        Args: { p_approve: boolean; p_id: string }
+        Returns: undefined
+      }
+      admin_process_kyc: {
+        Args: {
+          p_id: string
+          p_note?: string
+          p_status: Database["public"]["Enums"]["kyc_status"]
+        }
+        Returns: undefined
+      }
+      admin_process_withdrawal: {
+        Args: {
+          p_id: string
+          p_note?: string
+          p_status: Database["public"]["Enums"]["txn_status"]
+        }
+        Returns: undefined
+      }
+      admin_resolve_battle: {
+        Args: { p_battle: string; p_winner?: string }
+        Returns: undefined
+      }
+      cancel_open_battle: { Args: { p_battle: string }; Returns: undefined }
+      claim_admin: { Args: never; Returns: boolean }
+      create_battle: {
+        Args: { p_amount: number; p_game: string }
+        Returns: string
+      }
+      create_deposit_request: {
+        Args: { p_amount: number; p_utr: string }
+        Returns: string
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
+      }
+      refund_battle: { Args: { _battle: string }; Returns: undefined }
+      request_withdrawal: {
+        Args: {
+          p_account?: string
+          p_amount: number
+          p_ifsc?: string
+          p_method: string
+          p_name?: string
+          p_upi?: string
+        }
+        Returns: string
+      }
+      set_room_code: {
+        Args: { p_battle: string; p_code: string }
+        Returns: undefined
+      }
+      settle_battle_win: {
+        Args: { _battle: string; _winner: string }
+        Returns: undefined
+      }
+      submit_battle_result: {
+        Args: {
+          p_battle: string
+          p_claim: Database["public"]["Enums"]["result_claim"]
+          p_screenshot?: string
+        }
+        Returns: string
       }
       wallet_credit: {
         Args: { _amount: number; _bucket: string; _user: string }
