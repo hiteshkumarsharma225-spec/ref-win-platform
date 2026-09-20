@@ -79,15 +79,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
-      { title: "FunBattle — Play Ludo Battles & Win Cash" },
+      { title: "FunBattle Demo — Ludo Battle Arena" },
       {
         name: "description",
-        content: "Create Ludo battles, challenge real players and win cash prizes instantly.",
+        content: "Create Ludo battles, challenge players and compete using virtual game credits.",
       },
-      { property: "og:title", content: "FunBattle — Play Ludo Battles & Win Cash" },
+      { property: "og:title", content: "FunBattle Demo — Ludo Battle Arena" },
       {
         property: "og:description",
-        content: "Create Ludo battles, challenge real players and win cash prizes instantly.",
+        content: "Create Ludo battles, challenge players and compete using virtual game credits.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
