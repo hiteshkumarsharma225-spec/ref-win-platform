@@ -1,0 +1,3 @@
+import { AppShell } from "@/components/AppShell";
+const faqs=[["How do I report a problem?","Open the relevant battle and use the available dispute/support action."],["Why is a result under review?","A disputed result can remain under review until an administrator checks the submitted evidence."],["How do I protect my account?","Never share passwords or OTPs and sign out on devices you do not control."]];
+export default function SupportPage(){return <AppShell><div className="space-y-4 pb-24"><h1 className="text-xl font-bold">Help & Support</h1>{faqs.map(([q,a])=><div key={q} className="rounded-2xl border border-white/10 bg-white/[0.04] p-4"><h2 className="font-semibold">{q}</h2><p className="mt-2 text-sm leading-6 text-white/55">{a}</p></div>)}</div></AppShell>}
