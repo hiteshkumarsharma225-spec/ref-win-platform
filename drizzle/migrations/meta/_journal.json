@@ -15,6 +15,13 @@
       "when": 1789925113335,
       "tag": "0001_funbattle_game_functions",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789925157744,
+      "tag": "0002_storage_policies",
+      "breakpoints": true
     }
   ]
 }
