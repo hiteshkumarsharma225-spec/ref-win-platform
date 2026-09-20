@@ -13,6 +13,9 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedBattlesRouteImport } from './routes/_authenticated/battles'
+import { Route as AuthenticatedReferRouteImport } from './routes/_authenticated/refer'
+import { Route as AuthenticatedTransactionsRouteImport } from './routes/_authenticated/transactions'
+import { Route as AuthenticatedWalletRouteImport } from './routes/_authenticated/wallet'
 import { Route as AuthenticatedBattleIdRouteImport } from './routes/_authenticated/battle.$id'
 
 const IndexRoute = IndexRouteImport.update({
@@ -34,6 +37,22 @@ const AuthenticatedBattlesRoute = AuthenticatedBattlesRouteImport.update({
   path: '/battles',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedReferRoute = AuthenticatedReferRouteImport.update({
+  id: '/refer',
+  path: '/refer',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedTransactionsRoute =
+  AuthenticatedTransactionsRouteImport.update({
+    id: '/transactions',
+    path: '/transactions',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedWalletRoute = AuthenticatedWalletRouteImport.update({
+  id: '/wallet',
+  path: '/wallet',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedBattleIdRoute = AuthenticatedBattleIdRouteImport.update({
   id: '/battle/$id',
   path: '/battle/$id',
@@ -44,12 +63,18 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/battles': typeof AuthenticatedBattlesRoute
+  '/refer': typeof AuthenticatedReferRoute
+  '/transactions': typeof AuthenticatedTransactionsRoute
+  '/wallet': typeof AuthenticatedWalletRoute
   '/battle/$id': typeof AuthenticatedBattleIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/battles': typeof AuthenticatedBattlesRoute
+  '/refer': typeof AuthenticatedReferRoute
+  '/transactions': typeof AuthenticatedTransactionsRoute
+  '/wallet': typeof AuthenticatedWalletRoute
   '/battle/$id': typeof AuthenticatedBattleIdRoute
 }
 export interface FileRoutesById {
@@ -58,19 +83,39 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/battles': typeof AuthenticatedBattlesRoute
+  '/_authenticated/refer': typeof AuthenticatedReferRoute
+  '/_authenticated/transactions': typeof AuthenticatedTransactionsRoute
+  '/_authenticated/wallet': typeof AuthenticatedWalletRoute
   '/_authenticated/battle/$id': typeof AuthenticatedBattleIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/battles' | '/battle/$id'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/battles'
+    | '/refer'
+    | '/transactions'
+    | '/wallet'
+    | '/battle/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/battles' | '/battle/$id'
+  to:
+    | '/'
+    | '/auth'
+    | '/battles'
+    | '/refer'
+    | '/transactions'
+    | '/wallet'
+    | '/battle/$id'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/battles'
+    | '/_authenticated/refer'
+    | '/_authenticated/transactions'
+    | '/_authenticated/wallet'
     | '/_authenticated/battle/$id'
   fileRoutesById: FileRoutesById
 }
@@ -110,6 +155,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedBattlesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/refer': {
+      id: '/_authenticated/refer'
+      path: '/refer'
+      fullPath: '/refer'
+      preLoaderRoute: typeof AuthenticatedReferRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/transactions': {
+      id: '/_authenticated/transactions'
+      path: '/transactions'
+      fullPath: '/transactions'
+      preLoaderRoute: typeof AuthenticatedTransactionsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/wallet': {
+      id: '/_authenticated/wallet'
+      path: '/wallet'
+      fullPath: '/wallet'
+      preLoaderRoute: typeof AuthenticatedWalletRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/battle/$id': {
       id: '/_authenticated/battle/$id'
       path: '/battle/$id'
@@ -122,11 +188,17 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedBattlesRoute: typeof AuthenticatedBattlesRoute
+  AuthenticatedReferRoute: typeof AuthenticatedReferRoute
+  AuthenticatedTransactionsRoute: typeof AuthenticatedTransactionsRoute
+  AuthenticatedWalletRoute: typeof AuthenticatedWalletRoute
   AuthenticatedBattleIdRoute: typeof AuthenticatedBattleIdRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedBattlesRoute: AuthenticatedBattlesRoute,
+  AuthenticatedReferRoute: AuthenticatedReferRoute,
+  AuthenticatedTransactionsRoute: AuthenticatedTransactionsRoute,
+  AuthenticatedWalletRoute: AuthenticatedWalletRoute,
   AuthenticatedBattleIdRoute: AuthenticatedBattleIdRoute,
 }
 
