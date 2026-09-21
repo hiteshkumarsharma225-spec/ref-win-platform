@@ -24,7 +24,7 @@ import { useUser } from "@/lib/account";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/battles")({
-  validateSearch: z.object({ game: z.string().optional() }),
+  validateSearch: z.object({ game: z.string().optional(), view: z.enum(["open", "live"]).optional() }),
   component: BattlesPage,
 });
 
@@ -40,14 +40,14 @@ type BattleRow = {
 };
 
 function BattlesPage() {
-  const { game } = Route.useSearch();
+  const { game, view } = Route.useSearch();
   const navigate = useNavigate();
   const activeGame = game ?? GAMES[0].id;
   const { user } = useUser();
   const qc = useQueryClient();
 
   const battles = useQuery({
-    queryKey: ["battles", activeGame],
+    queryKey: ["battles", activeGame, view],
     refetchInterval: 5000,
     queryFn: async () => {
       const { data, error } = await supabase
@@ -102,6 +102,8 @@ function BattlesPage() {
   const list = battles.data ?? [];
   const open = list.filter((b) => b.status === "open");
   const running = list.filter((b) => b.status !== "open");
+  const showOpen = !view || view === "open";
+  const showLive = !view || view === "live";
 
   return (
     <AppShell>
@@ -124,7 +126,7 @@ function BattlesPage() {
 
       <CreateBattleDialog game={activeGame} />
 
-      <Section title="Open Battles" icon={Swords} count={open.length}>
+      {showOpen ? <Section title="Open Battles" icon={Swords} count={open.length}>
         {open.length === 0 ? (
           <Empty text="No open battles. Create one and wait for a challenger." />
         ) : (
@@ -152,9 +154,9 @@ function BattlesPage() {
             />
           ))
         )}
-      </Section>
+      </Section> : null}
 
-      <Section title="Running Battles" icon={Trophy} count={running.length}>
+      {showLive ? <Section title="Running Battles" icon={Trophy} count={running.length}>
         {running.length === 0 ? (
           <Empty text="No running battles right now." />
         ) : (
@@ -180,7 +182,7 @@ function BattlesPage() {
             />
           ))
         )}
-      </Section>
+      </Section> : null}
     </AppShell>
   );
 }
