@@ -53,7 +53,7 @@ function WalletPage() {
     mutationFn: async () => {
       const { error } = await supabase.rpc("create_deposit_request", {
         p_amount: depositAmount,
-        p_utr: `DEMO-CREDIT-${Date.now()}`,
+        p_utr: `CREDIT-${Date.now()}`,
       });
       if (error) throw error;
     },
@@ -159,16 +159,16 @@ function WalletPage() {
               type="button"
               className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-card py-2 text-sm font-semibold"
               onClick={() => {
-                void navigator.clipboard.writeText("DEMO-CREDIT-" + depositAmount);
+                void navigator.clipboard.writeText("CREDIT-" + depositAmount);
                 toast.success("Demo credit code copied");
               }}
             >
-              <Copy className="h-4 w-4" /> Copy demo code
+              <Copy className="h-4 w-4" /> Copy credit code
             </button>
             <div className="mt-3 text-sm">
-              <p className="font-display font-bold">Request virtual demo credits</p>
+              <p className="font-display font-bold">Request virtual credits</p>
               <p className="mt-1 text-xs text-muted-foreground">
-                This is a demo wallet. No real payment is required and no money is transferred.
+                This is a virtual wallet. No real payment is required and no money is transferred.
                 Submit the amount you want credited; an admin will approve or reject the request.
               </p>
             </div>
