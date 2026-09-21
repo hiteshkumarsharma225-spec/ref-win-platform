@@ -50,7 +50,7 @@ function ReferPage() {
   const total = (earnings.data ?? []).reduce((s, e) => s + Number(e.amount), 0);
 
   const share = async () => {
-    const text = `Join my FunBattle demo arena and play Ludo practice battles! Use my code ${profile?.referral_code} 👉 ${link}`;
+    const text = `Join my FunBattle arena and play Ludo practice battles! Use my code ${profile?.referral_code} 👉 ${link}`;
     if (navigator.share) {
       try {
         await navigator.share({ title: "FunBattle", text, url: link });
@@ -69,7 +69,7 @@ function ReferPage() {
         <Gift className="mx-auto mb-2 h-8 w-8 text-primary" />
         <h1 className="font-display text-xl font-bold">Refer & Earn</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Earn virtual demo rewards when friends join your practice arena.
+          Earn virtual rewards when friends join your practice arena.
         </p>
 
         <div className="mt-4 rounded-xl border border-primary/40 bg-primary/10 p-3">
@@ -106,11 +106,11 @@ function ReferPage() {
         <div className="rounded-xl border border-border/60 bg-card p-4 text-center">
           <Gift className="mx-auto mb-1 h-4 w-4 text-primary" />
           <p className="font-display text-lg font-bold text-primary">{rupees(total)}</p>
-          <p className="text-[11px] text-muted-foreground">Demo rewards earned</p>
+          <p className="text-[11px] text-muted-foreground">Rewards earned</p>
         </div>
       </div>
 
-      <h2 className="mt-6 mb-2 font-display font-bold">Demo referral tiers</h2>
+      <h2 className="mt-6 mb-2 font-display font-bold">Referral tiers</h2>
       <div className="space-y-2 text-sm">
         <Tier label="Starter · 0-10 referrals" value="2% per battle" />
         <Tier label="Pro · 11-50 referrals" value="2% + ₹10 signup bonus" />
@@ -121,7 +121,7 @@ function ReferPage() {
       <div className="space-y-2">
         {(earnings.data ?? []).length === 0 ? (
           <p className="rounded-xl border border-dashed border-border p-5 text-center text-sm text-muted-foreground">
-            No demo referral rewards yet. Share your link to invite friends.
+            No referral rewards yet. Share your link to invite friends.
           </p>
         ) : null}
         {(earnings.data ?? []).map((e) => (
