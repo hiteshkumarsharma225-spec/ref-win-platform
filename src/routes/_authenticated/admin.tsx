@@ -1,6 +1,7 @@
+import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Clock3, Coins, Eye, Loader2, ShieldAlert, X } from "lucide-react";
+import { Check, Clock3, Coins, Eye, Loader2, MinusCircle, PlusCircle, Search, ShieldAlert, X } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { Badge } from "@/components/ui/badge";
@@ -49,7 +50,7 @@ function AdminPage() {
       const { data: battles, error } = await supabase
         .from("battles")
         .select("id,game,creator_id,opponent_id,status,result_deadline_at,created_at")
-        .eq("status", "disputed")
+        .in("status", ["result_pending", "disputed"])
         .order("created_at", { ascending: false })
         .limit(50);
       if (error) throw error;
@@ -78,6 +79,63 @@ function AdminPage() {
       }));
     },
     refetchInterval: 5000,
+  });
+
+  const [userSearch, setUserSearch] = useState("");
+  const [adjustAmount, setAdjustAmount] = useState(100);
+
+  const adminUsers = useQuery({
+    queryKey: ["admin-demo-wallet-users", userSearch],
+    enabled: !!user && !!isAdmin && userSearch.trim().length >= 2,
+    queryFn: async () => {
+      const q = userSearch.trim();
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id,username,phone")
+        .or("username.ilike.%" + q + "%,phone.ilike.%" + q + "%")
+        .limit(10);
+      if (error) throw error;
+      const ids = (data ?? []).map((p) => p.id);
+      if (!ids.length) return [];
+      const { data: wallets, error: walletError } = await supabase
+        .from("wallets")
+        .select("user_id,bonus_cash,deposit_cash,winning_cash")
+        .in("user_id", ids);
+      if (walletError) throw walletError;
+      const byId = new Map((wallets ?? []).map((w) => [w.user_id, w]));
+      return (data ?? []).map((p) => ({ ...p, wallet: byId.get(p.id) ?? null }));
+    },
+  });
+
+  const resolveDemo = useMutation({
+    mutationFn: async ({ battleId, winnerId }: { battleId: string; winnerId: string }) => {
+      const { error } = await (supabase.rpc as any)("admin_resolve_demo_battle", {
+        p_battle: battleId,
+        p_winner: winnerId,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-demo-battle-reviews"] });
+      toast.success("Demo battle result approved");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const adjustDemo = useMutation({
+    mutationFn: async ({ userId, delta }: { userId: string; delta: number }) => {
+      const { error } = await (supabase.rpc as any)("admin_adjust_demo_credits", {
+        p_user: userId,
+        p_delta: delta,
+        p_note: "Admin demo-credit wallet adjustment",
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-demo-wallet-users"] });
+      toast.success("Demo wallet updated");
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const process = useMutation({
@@ -131,6 +189,107 @@ function AdminPage() {
 
       <div className="mt-5 space-y-3">
         <div>
+          <h1 className="font-display text-lg font-bold">Match Result Approvals</h1>
+          <p className="text-xs text-muted-foreground">
+            Review pending/disputed demo battles and submitted screenshots. Approval adds virtual demo credits only.
+          </p>
+        </div>
+        {(reviewBattles.data ?? []).length === 0 ? (
+          <div className="rounded-xl border border-border/60 bg-card p-5 text-sm text-muted-foreground">
+            No match results waiting for admin review.
+          </div>
+        ) : (reviewBattles.data ?? []).map((battle) => (
+          <div key={battle.id} className="rounded-2xl border border-border/60 bg-card p-4">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <p className="font-semibold">{battle.game}</p>
+                <p className="text-xs text-muted-foreground">Battle {battle.id.slice(0, 8)} · {battle.status}</p>
+              </div>
+              <Badge variant={battle.status === "disputed" ? "destructive" : "secondary"}>{battle.status}</Badge>
+            </div>
+            <div className="mt-3 space-y-2">
+              {battle.results.map((result) => (
+                <div key={result.id} className="rounded-xl border border-border/60 bg-secondary/40 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <p className="font-semibold">{result.profile?.username ?? "Unknown player"}</p>
+                      <p className="text-xs text-muted-foreground">Claimed: {result.claim}</p>
+                    </div>
+                    {result.screenshot_url ? (
+                      <Button variant="outline" size="sm" onClick={async () => {
+                        const { data, error } = await supabase.storage.from("result-screenshots").createSignedUrl(result.screenshot_url, 600);
+                        if (error) return toast.error(error.message);
+                        window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+                      }}><Eye className="h-4 w-4" /> Screenshot</Button>
+                    ) : null}
+                  </div>
+                  <Button
+                    className="mt-2 w-full"
+                    size="sm"
+                    onClick={() => resolveDemo.mutate({ battleId: battle.id, winnerId: result.user_id })}
+                    disabled={resolveDemo.isPending || result.claim === "lost"}
+                  >
+                    {resolveDemo.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                    Approve {result.profile?.username ?? "player"} as winner
+                  </Button>
+                </div>
+              ))}
+            </div>
+            <p className="mt-3 text-[11px] text-muted-foreground">
+              For a player who claimed Lost, choose the opponent's submitted claim instead. If evidence is inconclusive, leave the battle disputed.
+            </p>
+          </div>
+        ))}
+
+        <div className="pt-3">
+          <h1 className="font-display text-lg font-bold">Demo Wallet Management</h1>
+          <p className="text-xs text-muted-foreground">
+            Search a user and add or deduct virtual demo credits. This never changes withdrawable cash.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+            <input
+              value={userSearch}
+              onChange={(e) => setUserSearch(e.target.value)}
+              placeholder="Username or phone"
+              className="h-10 w-full rounded-lg border border-border bg-card pl-9 pr-3 text-sm outline-none focus:border-primary"
+            />
+          </div>
+          <input
+            inputMode="numeric"
+            value={adjustAmount}
+            onChange={(e) => setAdjustAmount(Number(e.target.value.replace(/\D/g, "")) || 0)}
+            className="h-10 w-24 rounded-lg border border-border bg-card px-3 text-sm outline-none focus:border-primary"
+          />
+        </div>
+        <div className="space-y-2">
+          {(adminUsers.data ?? []).map((u) => (
+            <div key={u.id} className="rounded-2xl border border-border/60 bg-card p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-semibold">{u.username}</p>
+                  <p className="text-xs text-muted-foreground">{u.phone}</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-display font-bold">{Number(u.wallet?.bonus_cash ?? 0).toLocaleString("en-IN")}</p>
+                  <p className="text-[11px] text-muted-foreground">demo credits</p>
+                </div>
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <Button onClick={() => adjustDemo.mutate({ userId: u.id, delta: adjustAmount })} disabled={adjustDemo.isPending || adjustAmount <= 0}>
+                  <PlusCircle className="h-4 w-4" /> Add
+                </Button>
+                <Button variant="outline" onClick={() => adjustDemo.mutate({ userId: u.id, delta: -adjustAmount })} disabled={adjustDemo.isPending || adjustAmount <= 0}>
+                  <MinusCircle className="h-4 w-4" /> Deduct
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="pt-3">
           <h1 className="font-display text-lg font-bold">Demo Credit Requests</h1>
           <p className="text-xs text-muted-foreground">Approve a request to add virtual credits to the user's demo wallet.</p>
         </div>
