@@ -18,10 +18,10 @@ export const Route = createFileRoute("/auth")({
   validateSearch: searchSchema,
   head: () => ({
     meta: [
-      { title: "Login — FunBattle" },
-      { name: "description", content: "Log in or register with your mobile number to start playing FunBattle." },
-      { property: "og:title", content: "Login — FunBattle" },
-      { property: "og:description", content: "Log in or register with your mobile number." },
+      { title: "Login — FunBattle Demo" },
+      { name: "description", content: "Log in or register with your mobile number using demo OTP authentication." },
+      { property: "og:title", content: "Login — FunBattle Demo" },
+      { property: "og:description", content: "Log in or register with your mobile number using demo OTP authentication." },
     ],
   }),
   component: AuthPage,
@@ -55,14 +55,14 @@ function AuthPage() {
       return;
     }
     setStep("otp");
-    toast.success("OTP sent to +91 " + phone, {
-      description: "Demo mode: your 6-digit PIN is your OTP.",
+    toast.success("Demo OTP generated for +91 " + phone, {
+      description: "Demo mode: enter the 6-digit code you set for this account.",
     });
   };
 
   const submit = async () => {
     if (pin.length !== 6) {
-      toast.error("Enter your 6-digit code");
+      toast.error("Enter your 6-digit demo OTP");
       return;
     }
     setBusy(true);
@@ -109,12 +109,12 @@ function AuthPage() {
         F
       </div>
       <h1 className="font-display text-2xl font-bold">
-        {step === "phone" ? "Enter your mobile number" : "Verify OTP"}
+        {step === "phone" ? "Enter your mobile number" : "Enter demo OTP"}
       </h1>
       <p className="mt-1 text-sm text-muted-foreground">
         {step === "phone"
-          ? "We'll send a one-time code to continue."
-          : `Code sent to +91 ${phone}. In this demo the code is the 6-digit PIN you choose.`}
+          ? "We'll continue with a demo one-time code. No SMS is sent."
+          : `Demo OTP step for +91 ${phone}. No real SMS is sent in demo mode.`}
       </p>
 
       <div className="mt-8 space-y-4">
@@ -137,7 +137,7 @@ function AuthPage() {
               </div>
             </div>
             <Button className="w-full" size="lg" onClick={sendOtp}>
-              Send OTP
+              Continue with Demo OTP
             </Button>
           </>
         ) : (
@@ -166,7 +166,7 @@ function AuthPage() {
               </>
             ) : null}
             <div className="space-y-2">
-              <Label htmlFor="pin">6-digit code</Label>
+              <Label htmlFor="pin">6-digit demo OTP / login PIN</Label>
               <Input
                 id="pin"
                 inputMode="numeric"
@@ -178,26 +178,26 @@ function AuthPage() {
               />
               <p className="text-xs text-muted-foreground">
                 {mode === "signup"
-                  ? "This code becomes your login code — remember it."
-                  : "Enter the code you set when you registered."}
+                  ? "For demo mode, this 6-digit code becomes your login PIN. No SMS is sent."
+                  : "Enter the 6-digit PIN you used when creating this demo account."}
               </p>
             </div>
             <Button className="w-full" size="lg" onClick={submit} disabled={busy}>
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              {mode === "signup" ? "Create account" : "Login"}
+              {mode === "signup" ? "Create demo account" : "Login"}
             </Button>
             <button
               className="w-full text-center text-sm text-muted-foreground"
               onClick={() => setMode(mode === "login" ? "signup" : "login")}
             >
-              {mode === "login" ? "New here? Create an account" : "Already registered? Login"}
+              {mode === "login" ? "New here? Create a demo account" : "Already registered? Login"}
             </button>
           </>
         )}
       </div>
 
       <p className="mt-auto pt-10 text-center text-[11px] text-muted-foreground">
-        By continuing you agree to our fair play rules. 18+ only. Play responsibly.
+        Demo authentication only. No real SMS OTP is sent. By continuing you agree to our fair play rules.
       </p>
     </div>
   );
