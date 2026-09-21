@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ArrowDownToLine, ArrowUpFromLine, Loader2, Receipt, QrCode, Copy } from "lucide-react";
+import QRCode from "qrcode";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { DEPOSIT_AMOUNTS, MIN_WITHDRAWAL, rupees } from "@/lib/game";
+import { DEPOSIT_AMOUNTS, rupees } from "@/lib/game";
 import { useProfile, useUser, useWallet, walletTotal } from "@/lib/account";
 import { cn } from "@/lib/utils";
 
@@ -26,62 +27,98 @@ function WalletPage() {
 
   const [depositAmount, setDepositAmount] = useState(100);
   const [utr, setUtr] = useState("");
-  const [wdAmount, setWdAmount] = useState(MIN_WITHDRAWAL);
+  const [qrDataUrl, setQrDataUrl] = useState("");
   const [method, setMethod] = useState<"upi" | "bank">("upi");
-  const [upi, setUpi] = useState("");
-  const [accName, setAccName] = useState("");
-  const [accNo, setAccNo] = useState("");
-  const [ifsc, setIfsc] = useState("");
 
-  const requests = useQuery({
-    queryKey: ["wallet-requests", user?.id],
+  const paymentSettings = useQuery({
+    queryKey: ["payment-settings"],
     enabled: !!user,
     queryFn: async () => {
-      const [dep, wd] = await Promise.all([
-        supabase
-          .from("deposit_requests")
-          .select("*")
-          .order("created_at", { ascending: false })
-          .limit(10),
-        supabase.from("withdrawals").select("*").order("created_at", { ascending: false }).limit(10),
-      ]);
-      return { deposits: dep.data ?? [], withdrawals: wd.data ?? [] };
+      const { data, error } = await supabase
+        .from("payment_settings")
+        .select("merchant_upi,merchant_name,currency")
+        .eq("is_active", true)
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
     },
   });
 
-  const deposit = useMutation({
+  const creditRequests = useQuery({
+    queryKey: ["credit-payment-requests", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("credit_payment_requests")
+        .select("id,amount,utr,status,created_at,processed_at,admin_note")
+        .eq("user_id", user!.id)
+        .order("created_at", { ascending: false })
+        .limit(10);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    const upi = paymentSettings.data?.merchant_upi;
+    if (!upi || depositAmount <= 0) {
+      setQrDataUrl("");
+      return;
+    }
+
+    const params = new URLSearchParams({
+      pa: upi,
+      pn: paymentSettings.data?.merchant_name ?? "Maja Muqablo",
+      am: depositAmount.toFixed(2),
+      cu: paymentSettings.data?.currency ?? "INR",
+      tn: `Virtual Credits ${depositAmount}`,
+    });
+
+    QRCode.toDataURL(`upi://pay?${params.toString()}`, {
+      width: 320,
+      margin: 2,
+      errorCorrectionLevel: "M",
+    })
+      .then((url) => {
+        if (!cancelled) setQrDataUrl(url);
+      })
+      .catch(() => {
+        if (!cancelled) setQrDataUrl("");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [paymentSettings.data, depositAmount]);
+
+  const submitCreditRequest = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.rpc("create_deposit_request", {
-        p_amount: depositAmount,
-        p_utr: `CREDIT-${Date.now()}`,
+      if (!paymentSettings.data?.merchant_upi) {
+        throw new Error("Payment settings are not configured.");
+      }
+      const cleanUtr = utr.trim();
+      if (cleanUtr.length < 6) {
+        throw new Error("Please enter the UTR / transaction reference.");
+      }
+
+      const { error } = await supabase.from("credit_payment_requests").insert({
+        user_id: user!.id,
+        amount: depositAmount,
+        utr: cleanUtr,
+        merchant_upi: paymentSettings.data.merchant_upi,
+        qr_reference: `upi://pay?pa=${encodeURIComponent(paymentSettings.data.merchant_upi)}&am=${depositAmount.toFixed(2)}&cu=INR`,
+        payment_note: "Payment made for non-cashable virtual credits.",
       });
       if (error) throw error;
     },
     onSuccess: () => {
       setUtr("");
-      qc.invalidateQueries();
-      toast.success("Deposit request submitted", {
-        description: "An admin will review your credit request and add virtual credits after approval.",
+      qc.invalidateQueries({ queryKey: ["credit-payment-requests", user?.id] });
+      toast.success("Payment reference submitted", {
+        description: "Admin will verify the UTR before adding virtual credits.",
       });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const withdraw = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.rpc("request_withdrawal", {
-        p_amount: wdAmount,
-        p_method: method,
-        p_upi: method === "upi" ? upi : "",
-        p_name: method === "bank" ? accName : "",
-        p_account: method === "bank" ? accNo : "",
-        p_ifsc: method === "bank" ? ifsc : "",
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      qc.invalidateQueries();
-      toast.success("Withdrawal requested", { description: "Payouts are processed within 24 hours." });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -89,12 +126,12 @@ function WalletPage() {
   return (
     <AppShell>
       <div className="glow-gold rounded-2xl bg-card p-5">
-        <p className="text-xs text-muted-foreground">Total balance</p>
-        <p className="font-display text-3xl font-bold gold-text">{rupees(walletTotal(wallet))}</p>
+        <p className="text-xs text-muted-foreground">Virtual credit balance</p>
+        <p className="font-display text-3xl font-bold gold-text">{rupees(wallet?.bonus_cash ?? walletTotal(wallet))}</p>
         <div className="mt-4 grid grid-cols-3 gap-2 text-center">
           <Bucket label="Deposit" value={wallet?.deposit_cash ?? 0} />
           <Bucket label="Winnings" value={wallet?.winning_cash ?? 0} />
-          <Bucket label="Bonus" value={wallet?.bonus_cash ?? 0} />
+          <Bucket label="Credits" value={wallet?.bonus_cash ?? 0} />
         </div>
       </div>
 
@@ -108,10 +145,10 @@ function WalletPage() {
       <Tabs defaultValue="add" className="mt-5">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="add">
-            <ArrowDownToLine className="mr-1 h-4 w-4" /> Add Money
+            <ArrowDownToLine className="mr-1 h-4 w-4" /> Add Credits
           </TabsTrigger>
           <TabsTrigger value="withdraw">
-            <ArrowUpFromLine className="mr-1 h-4 w-4" /> Withdraw
+            <ArrowUpFromLine className="mr-1 h-4 w-4" /> Wallet
           </TabsTrigger>
         </TabsList>
 
@@ -132,9 +169,10 @@ function WalletPage() {
               </button>
             ))}
           </div>
+
           <Input
             inputMode="numeric"
-            value={depositAmount}
+            value={depositAmount || ""}
             onChange={(e) => setDepositAmount(Number(e.target.value.replace(/\D/g, "")) || 0)}
             placeholder="Enter amount"
           />
@@ -142,135 +180,89 @@ function WalletPage() {
           <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4">
             <div className="flex items-center gap-2">
               <QrCode className="h-5 w-5 text-primary" />
-              <p className="font-display font-bold">QR Credit</p>
+              <p className="font-display font-bold">Pay by UPI</p>
             </div>
-            <div className="mt-3 rounded-xl border border-border/60 bg-background p-4 text-center">
-              <div className="mx-auto grid h-36 w-36 grid-cols-8 gap-1 rounded-lg bg-white p-3">
-                {Array.from({ length: 64 }, (_, i) => (
-                  <span key={i} className={((i * 17 + 7) % 5 < 2 || i % 9 === 0) ? "rounded-sm bg-foreground" : "rounded-sm bg-transparent"} />
-                ))}
+
+            {paymentSettings.isLoading ? (
+              <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>
+            ) : paymentSettings.data?.merchant_upi && qrDataUrl ? (
+              <>
+                <div className="mt-3 rounded-xl border border-border/60 bg-white p-4 text-center">
+                  <img src={qrDataUrl} alt="UPI payment QR code" className="mx-auto h-64 w-64 max-w-full" />
+                  <p className="mt-3 text-sm font-semibold">Pay {rupees(depositAmount)}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{paymentSettings.data.merchant_upi}</p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    This payment is for non-cashable virtual credits only.
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  className="mt-3 w-full"
+                  onClick={() => {
+                    void navigator.clipboard.writeText(paymentSettings.data!.merchant_upi);
+                    toast.success("UPI ID copied");
+                  }}
+                >
+                  <Copy className="h-4 w-4" /> Copy UPI ID
+                </Button>
+              </>
+            ) : (
+              <div className="mt-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm">
+                Payment settings are not configured.
               </div>
-              <p className="mt-3 text-sm font-semibold">CREDIT · {depositAmount}</p>
-              <p className="mt-1 text-[11px] text-muted-foreground">
-                Visual-only QR. It does not initiate a payment or transfer money.
-              </p>
-            </div>
-            <button
-              type="button"
-              className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-card py-2 text-sm font-semibold"
-              onClick={() => {
-                void navigator.clipboard.writeText("CREDIT-" + depositAmount);
-                toast.success("Credit code copied");
-              }}
-            >
-              <Copy className="h-4 w-4" /> Copy credit code
-            </button>
-            <div className="mt-3 text-sm">
-              <p className="font-display font-bold">Request virtual credits</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                This is a virtual wallet. No real payment is required and no money is transferred.
-                Submit the amount you want credited; an admin will approve or reject the request.
-              </p>
-            </div>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="utr">UTR / Transaction Reference</Label>
+            <Input
+              id="utr"
+              value={utr}
+              onChange={(e) => setUtr(e.target.value.replace(/\s/g, ""))}
+              placeholder="Enter UTR after successful payment"
+              autoCapitalize="characters"
+            />
+            <p className="text-xs text-muted-foreground">
+              Submit the UTR only after your payment is completed. Admin verification is required.
+            </p>
           </div>
 
           <Button
             className="w-full"
             size="lg"
-            onClick={() => deposit.mutate()}
-            disabled={deposit.isPending || depositAmount < 10}
+            onClick={() => submitCreditRequest.mutate()}
+            disabled={submitCreditRequest.isPending || depositAmount < 1 || !paymentSettings.data?.merchant_upi || utr.trim().length < 6}
           >
-            {deposit.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Submit deposit
+            {submitCreditRequest.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            Submit UTR for verification
           </Button>
 
+          <div className="rounded-xl border border-border/60 bg-card p-3 text-xs text-muted-foreground">
+            <p className="font-semibold text-foreground">How it works</p>
+            <p className="mt-1">1. Select amount → 2. Pay using the QR → 3. Enter UTR → 4. Admin verifies → 5. Virtual credits are added.</p>
+            <p className="mt-1">These credits are non-cashable and cannot be withdrawn as money.</p>
+          </div>
+
           <RequestList
-            title="Recent credit requests"
-            rows={(requests.data?.deposits ?? []).map((d) => ({
-              id: d.id,
-              amount: d.amount,
-              status: d.status,
-              created_at: d.created_at,
-            }))}
+            title="Recent payment requests"
+            rows={creditRequests.data ?? []}
           />
         </TabsContent>
 
         <TabsContent value="withdraw" className="space-y-4 pt-4">
-          {profile?.kyc_status !== "approved" ? (
-            <div className="rounded-xl border border-warning/40 bg-warning/10 p-3 text-sm">
-              KYC verification is required before withdrawing.{" "}
-              <Link to="/kyc" className="font-semibold text-warning underline">
-                Complete KYC
-              </Link>
-            </div>
-          ) : null}
-
-          <div className="space-y-2">
-            <Label>Amount (from winnings only)</Label>
-            <Input
-              inputMode="numeric"
-              value={wdAmount}
-              onChange={(e) => setWdAmount(Number(e.target.value.replace(/\D/g, "")) || 0)}
-            />
-            <p className="text-xs text-muted-foreground">
-              Minimum {rupees(MIN_WITHDRAWAL)} · Available {rupees(wallet?.winning_cash ?? 0)}
+          <div className="rounded-2xl border border-border/60 bg-card p-5">
+            <p className="font-display font-bold">Virtual wallet</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Your credits can be used inside the supported virtual-credit experience. Cash withdrawal and payout features are not available here.
             </p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            {(["upi", "bank"] as const).map((m) => (
-              <button
-                key={m}
-                onClick={() => setMethod(m)}
-                className={cn(
-                  "rounded-lg border py-2 text-sm font-semibold uppercase",
-                  method === m ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card",
-                )}
-              >
-                {m}
-              </button>
-            ))}
-          </div>
-
-          {method === "upi" ? (
-            <div className="space-y-2">
-              <Label htmlFor="upi">Your UPI ID</Label>
-              <Input id="upi" value={upi} onChange={(e) => setUpi(e.target.value)} placeholder="name@bank" />
+            <div className="mt-4 rounded-xl bg-secondary/60 p-4">
+              <p className="text-xs text-muted-foreground">Current virtual credits</p>
+              <p className="font-display text-2xl font-bold">{rupees(wallet?.bonus_cash ?? 0)}</p>
             </div>
-          ) : (
-            <div className="space-y-3">
-              <div className="space-y-2">
-                <Label>Account holder name</Label>
-                <Input value={accName} onChange={(e) => setAccName(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Account number</Label>
-                <Input value={accNo} onChange={(e) => setAccNo(e.target.value)} inputMode="numeric" />
-              </div>
-              <div className="space-y-2">
-                <Label>IFSC code</Label>
-                <Input value={ifsc} onChange={(e) => setIfsc(e.target.value.toUpperCase())} />
-              </div>
-            </div>
-          )}
-
-          <Button
-            className="w-full"
-            size="lg"
-            onClick={() => withdraw.mutate()}
-            disabled={withdraw.isPending || wdAmount < MIN_WITHDRAWAL}
-          >
-            {withdraw.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Request withdrawal
-          </Button>
-
-          <RequestList
-            title="Withdrawal status"
-            rows={(requests.data?.withdrawals ?? []).map((d) => ({
-              id: d.id,
-              amount: d.amount,
-              status: d.status,
-              created_at: d.created_at,
-            }))}
-          />
+          </div>
+          <div className="rounded-xl border border-warning/40 bg-warning/10 p-3 text-sm">
+            No cash withdrawal is available for these virtual credits.
+          </div>
         </TabsContent>
       </Tabs>
     </AppShell>
@@ -291,7 +283,7 @@ function RequestList({
   rows,
 }: {
   title: string;
-  rows: { id: string; amount: number | string; status: string; created_at: string }[];
+  rows: { id: string; amount: number | string; utr: string; status: string; created_at: string }[];
 }) {
   if (rows.length === 0) return null;
   return (
@@ -304,16 +296,12 @@ function RequestList({
             className="flex items-center justify-between rounded-xl border border-border/60 bg-card px-3 py-2 text-sm"
           >
             <div>
-              <p className="font-semibold">{rupees(r.amount)}</p>
+              <p className="font-semibold">{rupees(r.amount)} · UTR {r.utr}</p>
               <p className="text-[11px] text-muted-foreground">
                 {new Date(r.created_at).toLocaleString("en-IN")}
               </p>
             </div>
-            <Badge
-              variant={
-                r.status === "completed" ? "default" : r.status === "rejected" ? "destructive" : "secondary"
-              }
-            >
+            <Badge variant={r.status === "approved" ? "default" : r.status === "rejected" ? "destructive" : "secondary"}>
               {r.status}
             </Badge>
           </div>
