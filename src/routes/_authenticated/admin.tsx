@@ -173,9 +173,31 @@ function AdminPage() {
 
   const rows = requests.data ?? [];
   const pending = rows.filter((r) => r.status === "pending");
+  const resultReviews = reviewBattles.data ?? [];
+  const pendingResults = resultReviews.filter((b) => b.status === "result_pending").length;
+  const disputedResults = resultReviews.filter((b) => b.status === "disputed").length;
 
   return (
     <AppShell title="Admin Panel">
+      <div className="grid grid-cols-2 gap-2">
+        <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4">
+          <p className="text-xs text-muted-foreground">Result reviews</p>
+          <p className="mt-1 font-display text-2xl font-bold text-primary">{resultReviews.length}</p>
+        </div>
+        <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-4">
+          <p className="text-xs text-muted-foreground">Disputed</p>
+          <p className="mt-1 font-display text-2xl font-bold">{disputedResults}</p>
+        </div>
+        <div className="rounded-2xl border border-border/60 bg-card p-4">
+          <p className="text-xs text-muted-foreground">Result pending</p>
+          <p className="mt-1 font-display text-2xl font-bold">{pendingResults}</p>
+        </div>
+        <div className="rounded-2xl border border-border/60 bg-card p-4">
+          <p className="text-xs text-muted-foreground">Credit requests</p>
+          <p className="mt-1 font-display text-2xl font-bold">{pending.length}</p>
+        </div>
+      </div>
+
       <div className="grid grid-cols-2 gap-3">
         <div className="rounded-2xl border border-border/60 bg-card p-4">
           <p className="text-xs text-muted-foreground">Pending requests</p>
@@ -236,13 +258,21 @@ function AdminPage() {
               ))}
             </div>
             <p className="mt-3 text-[11px] text-muted-foreground">
-              For a player who claimed Lost, choose the opponent's submitted claim instead. If evidence is inconclusive, leave the battle disputed.
+              For a player who claimed Lost, select the opponent only when the evidence supports that outcome. If evidence is inconclusive, leave the battle disputed.
             </p>
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              Approved rewards are virtual demo credits and are not a cash withdrawal balance.
           </div>
         ))}
 
         <div className="pt-3">
-          <h1 className="font-display text-lg font-bold">Demo Wallet Management</h1>
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <h1 className="font-display text-lg font-bold">Demo Wallet Management</h1>
+              <p className="text-xs text-muted-foreground">Add or deduct virtual credits for testing and friends-only play.</p>
+            </div>
+            <Coins className="h-5 w-5 text-primary" />
+          </div>
           <p className="text-xs text-muted-foreground">
             Search a user and add or deduct virtual demo credits. This never changes withdrawable cash.
           </p>
