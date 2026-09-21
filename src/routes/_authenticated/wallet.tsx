@@ -72,10 +72,10 @@ function WalletPage() {
       const { error } = await supabase.rpc("request_withdrawal", {
         p_amount: wdAmount,
         p_method: method,
-        p_upi: method === "upi" ? upi : null,
-        p_name: method === "bank" ? accName : null,
-        p_account: method === "bank" ? accNo : null,
-        p_ifsc: method === "bank" ? ifsc : null,
+        p_upi: method === "upi" ? upi : "",
+        p_name: method === "bank" ? accName : "",
+        p_account: method === "bank" ? accNo : "",
+        p_ifsc: method === "bank" ? ifsc : "",
       });
       if (error) throw error;
     },
@@ -92,9 +92,9 @@ function WalletPage() {
         <p className="text-xs text-muted-foreground">Total balance</p>
         <p className="font-display text-3xl font-bold gold-text">{rupees(walletTotal(wallet))}</p>
         <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-          <Bucket label="Deposit" value={wallet?.deposit_cash} />
-          <Bucket label="Winnings" value={wallet?.winning_cash} />
-          <Bucket label="Bonus" value={wallet?.bonus_cash} />
+          <Bucket label="Deposit" value={wallet?.deposit_cash ?? 0} />
+          <Bucket label="Winnings" value={wallet?.winning_cash ?? 0} />
+          <Bucket label="Bonus" value={wallet?.bonus_cash ?? 0} />
         </div>
       </div>
 

@@ -87,7 +87,7 @@ function BattleRoom() {
       const { data, error } = await supabase.rpc("submit_battle_result", {
         p_battle: id,
         p_claim: claim,
-        p_screenshot: shot ?? null,
+        p_screenshot: shot ?? "",
       });
       if (error) throw error;
       return data as string;
