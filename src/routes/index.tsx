@@ -70,8 +70,14 @@ function Home() {
               Number(wallet?.winning_cash ?? 0) +
               Number(wallet?.bonus_cash ?? 0),
           )} />
-          <StatCard label="Open" value={String(stats?.open ?? 0)} />
-          <StatCard label="Live" value={String(stats?.running ?? 0)} />
+          <Link to="/battles" search={{ view: "open" }} className="block rounded-xl border border-border/60 bg-card p-3 text-center transition-colors active:bg-secondary">
+            <p className="font-display text-base font-bold text-primary">{String(stats?.open ?? 0)}</p>
+            <p className="text-[11px] text-muted-foreground">Open</p>
+          </Link>
+          <Link to="/battles" search={{ view: "live" }} className="block rounded-xl border border-border/60 bg-card p-3 text-center transition-colors active:bg-secondary">
+            <p className="font-display text-base font-bold text-primary">{String(stats?.running ?? 0)}</p>
+            <p className="text-[11px] text-muted-foreground">Live</p>
+          </Link>
         </div>
       ) : null}
 
