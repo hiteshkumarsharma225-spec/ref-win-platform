@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ArrowDownToLine, ArrowUpFromLine, Copy, Loader2, Receipt } from "lucide-react";
+import { ArrowDownToLine, ArrowUpFromLine, Loader2, Receipt } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { DEPOSIT_AMOUNTS, MIN_WITHDRAWAL, UPI_ID, rupees } from "@/lib/game";
+import { DEPOSIT_AMOUNTS, MIN_WITHDRAWAL, rupees } from "@/lib/game";
 import { useProfile, useUser, useWallet, walletTotal } from "@/lib/account";
 import { cn } from "@/lib/utils";
 
@@ -53,7 +53,7 @@ function WalletPage() {
     mutationFn: async () => {
       const { error } = await supabase.rpc("create_deposit_request", {
         p_amount: depositAmount,
-        p_utr: utr,
+        p_utr: `DEMO-CREDIT-${Date.now()}`,
       });
       if (error) throw error;
     },
@@ -61,7 +61,7 @@ function WalletPage() {
       setUtr("");
       qc.invalidateQueries();
       toast.success("Deposit request submitted", {
-        description: "Money is added once our team confirms the payment.",
+        description: "An admin will review your demo-credit request and add virtual credits after approval.",
       });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -139,44 +139,25 @@ function WalletPage() {
             placeholder="Enter amount"
           />
 
-          <div className="rounded-xl border border-border/60 bg-card p-4 text-sm">
-            <p className="mb-2 font-display font-bold">Pay via UPI</p>
-            <div className="flex items-center gap-2">
-              <code className="flex-1 rounded-md bg-secondary px-3 py-2 text-primary">{UPI_ID}</code>
-              <Button
-                size="icon"
-                variant="outline"
-                onClick={() => {
-                  navigator.clipboard.writeText(UPI_ID);
-                  toast.success("UPI ID copied");
-                }}
-              >
-                <Copy className="h-4 w-4" />
-              </Button>
-            </div>
-            <ol className="mt-3 list-decimal space-y-1 pl-4 text-xs text-muted-foreground">
-              <li>Send {rupees(depositAmount)} to the UPI ID above.</li>
-              <li>Copy the 12-digit UTR / reference number from your payment app.</li>
-              <li>Paste it below and submit — balance is credited after verification.</li>
-            </ol>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="utr">UTR / Reference number</Label>
-            <Input id="utr" value={utr} onChange={(e) => setUtr(e.target.value)} placeholder="e.g. 402512345678" />
+          <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 text-sm">
+            <p className="font-display font-bold">Request virtual demo credits</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              This is a demo wallet. No real payment is required and no money is transferred.
+              Submit the amount you want credited; an admin will approve or reject the request.
+            </p>
           </div>
 
           <Button
             className="w-full"
             size="lg"
             onClick={() => deposit.mutate()}
-            disabled={deposit.isPending || depositAmount < 10 || utr.length < 6}
+            disabled={deposit.isPending || depositAmount < 10}
           >
             {deposit.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Submit deposit
           </Button>
 
           <RequestList
-            title="Recent deposits"
+            title="Recent demo-credit requests"
             rows={(requests.data?.deposits ?? []).map((d) => ({
               id: d.id,
               amount: d.amount,
