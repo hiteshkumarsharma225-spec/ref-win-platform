@@ -61,7 +61,7 @@ function WalletPage() {
       setUtr("");
       qc.invalidateQueries();
       toast.success("Deposit request submitted", {
-        description: "An admin will review your demo-credit request and add virtual credits after approval.",
+        description: "An admin will review your credit request and add virtual credits after approval.",
       });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -142,7 +142,7 @@ function WalletPage() {
           <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4">
             <div className="flex items-center gap-2">
               <QrCode className="h-5 w-5 text-primary" />
-              <p className="font-display font-bold">Demo QR Credit Screen</p>
+              <p className="font-display font-bold">QR Credit</p>
             </div>
             <div className="mt-3 rounded-xl border border-border/60 bg-background p-4 text-center">
               <div className="mx-auto grid h-36 w-36 grid-cols-8 gap-1 rounded-lg bg-white p-3">
@@ -150,7 +150,7 @@ function WalletPage() {
                   <span key={i} className={((i * 17 + 7) % 5 < 2 || i % 9 === 0) ? "rounded-sm bg-foreground" : "rounded-sm bg-transparent"} />
                 ))}
               </div>
-              <p className="mt-3 text-sm font-semibold">DEMO-CREDIT · {depositAmount}</p>
+              <p className="mt-3 text-sm font-semibold">CREDIT · {depositAmount}</p>
               <p className="mt-1 text-[11px] text-muted-foreground">
                 Visual-only QR. It does not initiate a payment or transfer money.
               </p>
@@ -160,7 +160,7 @@ function WalletPage() {
               className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-card py-2 text-sm font-semibold"
               onClick={() => {
                 void navigator.clipboard.writeText("CREDIT-" + depositAmount);
-                toast.success("Demo credit code copied");
+                toast.success("Credit code copied");
               }}
             >
               <Copy className="h-4 w-4" /> Copy credit code
@@ -184,7 +184,7 @@ function WalletPage() {
           </Button>
 
           <RequestList
-            title="Recent demo-credit requests"
+            title="Recent credit requests"
             rows={(requests.data?.deposits ?? []).map((d) => ({
               id: d.id,
               amount: d.amount,
