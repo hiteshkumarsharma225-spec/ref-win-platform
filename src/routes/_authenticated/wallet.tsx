@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ArrowDownToLine, ArrowUpFromLine, Loader2, Receipt } from "lucide-react";
+import { ArrowDownToLine, ArrowUpFromLine, Loader2, Receipt, QrCode, Copy } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -139,8 +139,34 @@ function WalletPage() {
             placeholder="Enter amount"
           />
 
-          <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 text-sm">
-            <p className="font-display font-bold">Request virtual demo credits</p>
+          <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4">
+            <div className="flex items-center gap-2">
+              <QrCode className="h-5 w-5 text-primary" />
+              <p className="font-display font-bold">Demo QR Credit Screen</p>
+            </div>
+            <div className="mt-3 rounded-xl border border-border/60 bg-background p-4 text-center">
+              <div className="mx-auto grid h-36 w-36 grid-cols-8 gap-1 rounded-lg bg-white p-3">
+                {Array.from({ length: 64 }, (_, i) => (
+                  <span key={i} className={((i * 17 + 7) % 5 < 2 || i % 9 === 0) ? "rounded-sm bg-foreground" : "rounded-sm bg-transparent"} />
+                ))}
+              </div>
+              <p className="mt-3 text-sm font-semibold">DEMO-CREDIT · {depositAmount}</p>
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                Visual-only QR. It does not initiate a payment or transfer money.
+              </p>
+            </div>
+            <button
+              type="button"
+              className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-card py-2 text-sm font-semibold"
+              onClick={() => {
+                void navigator.clipboard.writeText("DEMO-CREDIT-" + depositAmount);
+                toast.success("Demo credit code copied");
+              }}
+            >
+              <Copy className="h-4 w-4" /> Copy demo code
+            </button>
+            <div className="mt-3 text-sm">
+              <p className="font-display font-bold">Request virtual demo credits</p>
             <p className="mt-1 text-xs text-muted-foreground">
               This is a demo wallet. No real payment is required and no money is transferred.
               Submit the amount you want credited; an admin will approve or reject the request.
