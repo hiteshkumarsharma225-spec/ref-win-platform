@@ -58,7 +58,7 @@ function ProfilePage() {
         <Row to="/kyc" icon={<ShieldCheck className="h-5 w-5 text-primary" />} label="KYC verification" />
         <Row to="/rules" icon={<BookOpen className="h-5 w-5 text-primary" />} label="Rules & fair play" />
         <Row to="/support" icon={<HelpCircle className="h-5 w-5 text-primary" />} label="Help & support" />
-        {isAdmin ? <Row to="/admin" icon={<ShieldCheck className="h-5 w-5 text-primary" />} label="Admin Panel" /> : null}
+        <Row to="/admin" icon={<ShieldCheck className="h-5 w-5 text-primary" />} label={isAdmin ? "Admin Panel" : "Admin Panel (admin only)"} />
       </div>
 
       <button
