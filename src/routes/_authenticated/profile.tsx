@@ -4,7 +4,7 @@ import { BookOpen, HelpCircle, LogOut, ShieldCheck, User } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { useProfile, useUser } from "@/lib/account";
+import { useIsAdmin, useProfile, useUser } from "@/lib/account";
 
 export const Route = createFileRoute("/_authenticated/profile")({
   component: ProfilePage,
@@ -13,6 +13,7 @@ export const Route = createFileRoute("/_authenticated/profile")({
 function ProfilePage() {
   const { user } = useUser();
   const { data: profile, isLoading } = useProfile(user?.id);
+  const { data: isAdmin } = useIsAdmin(user?.id);
   const qc = useQueryClient();
   const navigate = useNavigate();
 
@@ -57,6 +58,7 @@ function ProfilePage() {
         <Row to="/kyc" icon={<ShieldCheck className="h-5 w-5 text-primary" />} label="KYC verification" />
         <Row to="/rules" icon={<BookOpen className="h-5 w-5 text-primary" />} label="Rules & fair play" />
         <Row to="/support" icon={<HelpCircle className="h-5 w-5 text-primary" />} label="Help & support" />
+        {isAdmin ? <Row to="/admin" icon={<ShieldCheck className="h-5 w-5 text-primary" />} label="Admin Panel" /> : null}
       </div>
 
       <button
@@ -83,7 +85,7 @@ function Row({
   icon,
   label,
 }: {
-  to: "/kyc" | "/rules" | "/support";
+  to: "/kyc" | "/rules" | "/support" | "/admin";
   icon: React.ReactNode;
   label: string;
 }) {
