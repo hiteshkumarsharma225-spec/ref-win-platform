@@ -270,10 +270,10 @@ function BattleRoom() {
       {b.status === "completed" ? (
         <div className="mt-4 rounded-2xl border border-accent/40 bg-accent/10 p-4 text-center">
           <p className="font-display font-bold text-accent">
-            {b.winner_id === user?.id ? "You won the demo battle!" : "Match completed"}
+            {b.winner_id === user?.id ? "You won the battle!" : "Match completed"}
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
-            This version uses virtual/demo credits only.
+            Rewards are virtual credits only.
           </p>
         </div>
       ) : null}
