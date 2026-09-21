@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Clock3, Coins, Eye, Loader2, MinusCircle, PlusCircle, Search, ShieldAlert, X } from "lucide-react";
+import { Check, Coins, Eye, Loader2, MinusCircle, PlusCircle, Search, ShieldAlert, X } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { Badge } from "@/components/ui/badge";
@@ -17,30 +17,30 @@ function AdminPage() {
   const { user } = useUser();
   const { data: isAdmin, isLoading: roleLoading } = useIsAdmin(user?.id);
   const qc = useQueryClient();
+  const [userSearch, setUserSearch] = useState("");
+  const [adjustAmount, setAdjustAmount] = useState(100);
 
-  const requests = useQuery({
-    queryKey: ["admin-credit-requests"],
+  const paymentRequests = useQuery({
+    queryKey: ["admin-payment-requests"],
     enabled: !!user && !!isAdmin,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("deposit_requests")
-        .select("id,user_id,amount,utr,status,created_at,processed_at")
+        .from("credit_payment_requests")
+        .select("id,user_id,amount,utr,status,merchant_upi,created_at,processed_at,admin_note")
         .order("created_at", { ascending: false })
         .limit(100);
       if (error) throw error;
-
-      const userIds = [...new Set((data ?? []).map((r) => r.user_id))];
-      if (!userIds.length) return [];
-
+      const ids = [...new Set((data ?? []).map((r) => r.user_id))];
+      if (!ids.length) return [];
       const { data: profiles, error: profileError } = await supabase
         .from("profiles")
         .select("id,username,phone")
-        .in("id", userIds);
+        .in("id", ids);
       if (profileError) throw profileError;
-
       const byId = new Map((profiles ?? []).map((p) => [p.id, p]));
       return (data ?? []).map((r) => ({ ...r, profile: byId.get(r.user_id) ?? null }));
     },
+    refetchInterval: 5000,
   });
 
   const reviewBattles = useQuery({
@@ -54,7 +54,6 @@ function AdminPage() {
         .order("created_at", { ascending: false })
         .limit(50);
       if (error) throw error;
-
       const ids = (battles ?? []).map((b) => b.id);
       if (!ids.length) return [];
       const { data: results, error: resultError } = await supabase
@@ -62,13 +61,11 @@ function AdminPage() {
         .select("id,battle_id,user_id,claim,screenshot_url,created_at")
         .in("battle_id", ids);
       if (resultError) throw resultError;
-
       const userIds = [...new Set((results ?? []).map((r) => r.user_id))];
       const { data: profiles, error: profileError } = userIds.length
         ? await supabase.from("profiles").select("id,username,phone").in("id", userIds)
         : { data: [], error: null };
       if (profileError) throw profileError;
-
       const byId = new Map((profiles ?? []).map((p) => [p.id, p]));
       return (battles ?? []).map((battle) => ({
         ...battle,
@@ -80,9 +77,6 @@ function AdminPage() {
     },
     refetchInterval: 5000,
   });
-
-  const [userSearch, setUserSearch] = useState("");
-  const [adjustAmount, setAdjustAmount] = useState(100);
 
   const adminUsers = useQuery({
     queryKey: ["admin-wallet-users", userSearch],
@@ -109,7 +103,7 @@ function AdminPage() {
 
   const resolve = useMutation({
     mutationFn: async ({ battleId, winnerId }: { battleId: string; winnerId: string }) => {
-      const { error } = await (supabase.rpc as any)("admin_resolve__battle", {
+      const { error } = await supabase.rpc("admin_resolve_demo_battle", {
         p_battle: battleId,
         p_winner: winnerId,
       });
@@ -124,7 +118,7 @@ function AdminPage() {
 
   const adjust = useMutation({
     mutationFn: async ({ userId, delta }: { userId: string; delta: number }) => {
-      const { error } = await (supabase.rpc as any)("admin_adjust__credits", {
+      const { error } = await supabase.rpc("admin_adjust_demo_credits", {
         p_user: userId,
         p_delta: delta,
         p_note: "Admin credit wallet adjustment",
@@ -133,25 +127,59 @@ function AdminPage() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin-wallet-users"] });
-      toast.success("Wallet updated");
+      toast.success("Virtual credits updated");
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const process = useMutation({
-    mutationFn: async ({ id, approve }: { id: string; approve: boolean }) => {
-      const { error } = await supabase.rpc("admin_process_deposit", {
-        p_id: id,
-        p_approve: approve,
+  const approvePayment = useMutation({
+    mutationFn: async (request: { id: string; userId: string; amount: number }) => {
+      const { error: adjustError } = await supabase.rpc("admin_adjust_demo_credits", {
+        p_user: request.userId,
+        p_delta: request.amount,
+        p_note: `UPI payment UTR verified: ${request.id}`,
       });
+      if (adjustError) throw adjustError;
+
+      const { error } = await supabase
+        .from("credit_payment_requests")
+        .update({
+          status: "approved",
+          processed_at: new Date().toISOString(),
+          processed_by: user!.id,
+          admin_note: "UTR verified by admin; virtual credits added.",
+        })
+        .eq("id", request.id)
+        .eq("status", "pending");
       if (error) throw error;
     },
-    onSuccess: (_, variables) => {
-      qc.invalidateQueries({ queryKey: ["admin-credit-requests"] });
-      qc.invalidateQueries({ queryKey: ["admin-battle-reviews"] });
-      toast.success(variables.approve ? "Credits approved" : "Request rejected");
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-payment-requests"] });
+      qc.invalidateQueries({ queryKey: ["admin-wallet-users"] });
+      toast.success("Payment verified and virtual credits added");
     },
-    onError: (error: Error) => toast.error(error.message),
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const rejectPayment = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("credit_payment_requests")
+        .update({
+          status: "rejected",
+          processed_at: new Date().toISOString(),
+          processed_by: user!.id,
+          admin_note: "Payment reference rejected by admin.",
+        })
+        .eq("id", id)
+        .eq("status", "pending");
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-payment-requests"] });
+      toast.success("Payment request rejected");
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   if (roleLoading) {
@@ -171,8 +199,8 @@ function AdminPage() {
     );
   }
 
-  const rows = requests.data ?? [];
-  const pending = rows.filter((r) => r.status === "pending");
+  const requests = paymentRequests.data ?? [];
+  const pendingPayments = requests.filter((r) => r.status === "pending");
   const resultReviews = reviewBattles.data ?? [];
   const pendingResults = resultReviews.filter((b) => b.status === "result_pending").length;
   const disputedResults = resultReviews.filter((b) => b.status === "disputed").length;
@@ -180,47 +208,21 @@ function AdminPage() {
   return (
     <AppShell title="Admin Panel">
       <div className="grid grid-cols-2 gap-2">
-        <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4">
-          <p className="text-xs text-muted-foreground">Result reviews</p>
-          <p className="mt-1 font-display text-2xl font-bold text-primary">{resultReviews.length}</p>
-        </div>
-        <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-4">
-          <p className="text-xs text-muted-foreground">Disputed</p>
-          <p className="mt-1 font-display text-2xl font-bold">{disputedResults}</p>
-        </div>
-        <div className="rounded-2xl border border-border/60 bg-card p-4">
-          <p className="text-xs text-muted-foreground">Result pending</p>
-          <p className="mt-1 font-display text-2xl font-bold">{pendingResults}</p>
-        </div>
-        <div className="rounded-2xl border border-border/60 bg-card p-4">
-          <p className="text-xs text-muted-foreground">Credit requests</p>
-          <p className="mt-1 font-display text-2xl font-bold">{pending.length}</p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        <div className="rounded-2xl border border-border/60 bg-card p-4">
-          <p className="text-xs text-muted-foreground">Pending requests</p>
-          <p className="mt-1 font-display text-2xl font-bold">{pending.length}</p>
-        </div>
-        <div className="rounded-2xl border border-border/60 bg-card p-4">
-          <p className="text-xs text-muted-foreground">Total requests</p>
-          <p className="mt-1 font-display text-2xl font-bold">{rows.length}</p>
-        </div>
+        <Stat label="Result reviews" value={resultReviews.length} />
+        <Stat label="Disputed" value={disputedResults} />
+        <Stat label="Result pending" value={pendingResults} />
+        <Stat label="UPI requests" value={pendingPayments.length} />
       </div>
 
       <div className="mt-5 space-y-3">
-        <div>
+        <section>
           <h1 className="font-display text-lg font-bold">Match Result Approvals</h1>
-          <p className="text-xs text-muted-foreground">
-            Review pending/disputed battles and submitted screenshots. Approval adds virtual credits only.
-          </p>
-        </div>
-        {(reviewBattles.data ?? []).length === 0 ? (
-          <div className="rounded-xl border border-border/60 bg-card p-5 text-sm text-muted-foreground">
-            No match results waiting for admin review.
-          </div>
-        ) : (reviewBattles.data ?? []).map((battle) => (
+          <p className="text-xs text-muted-foreground">Review pending/disputed battles. Approved rewards are virtual credits only.</p>
+        </section>
+
+        {resultReviews.length === 0 ? (
+          <div className="rounded-xl border border-border/60 bg-card p-5 text-sm text-muted-foreground">No match results waiting for admin review.</div>
+        ) : resultReviews.map((battle) => (
           <div key={battle.id} className="rounded-2xl border border-border/60 bg-card p-4">
             <div className="flex items-center justify-between gap-2">
               <div>
@@ -245,136 +247,99 @@ function AdminPage() {
                       }}><Eye className="h-4 w-4" /> Screenshot</Button>
                     ) : null}
                   </div>
-                  <Button
-                    className="mt-2 w-full"
-                    size="sm"
-                    onClick={() => resolve.mutate({ battleId: battle.id, winnerId: result.user_id })}
-                    disabled={resolve.isPending || result.claim === "lost"}
-                  >
+                  <Button className="mt-2 w-full" size="sm" onClick={() => resolve.mutate({ battleId: battle.id, winnerId: result.user_id })} disabled={resolve.isPending || result.claim === "lost"}>
                     {resolve.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
                     Approve {result.profile?.username ?? "player"} as winner
                   </Button>
                 </div>
               ))}
             </div>
-            <p className="mt-3 text-[11px] text-muted-foreground">
-              For a player who claimed Lost, select the opponent only when the evidence supports that outcome. If evidence is inconclusive, leave the battle disputed.
-            </p>
-            <p className="mt-1 text-[11px] text-muted-foreground">
-              Approved rewards are virtual credits and are not a cash withdrawal balance.
-            </p>
+            <p className="mt-3 text-[11px] text-muted-foreground">If evidence is inconclusive, leave the battle disputed.</p>
           </div>
         ))}
 
-        <div className="pt-3">
+        <section className="pt-3">
           <div className="flex items-center justify-between gap-2">
             <div>
-              <h1 className="font-display text-lg font-bold">Wallet Management</h1>
-              <p className="text-xs text-muted-foreground">Add or deduct virtual credits for testing and friends-only play.</p>
+              <h1 className="font-display text-lg font-bold">UPI Credit Requests</h1>
+              <p className="text-xs text-muted-foreground">Verify the UTR before adding non-cashable virtual credits.</p>
             </div>
             <Coins className="h-5 w-5 text-primary" />
           </div>
-          <p className="text-xs text-muted-foreground">
-            Search a user and add or deduct virtual credits. This never changes withdrawable cash.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-            <input
-              value={userSearch}
-              onChange={(e) => setUserSearch(e.target.value)}
-              placeholder="Username or phone"
-              className="h-10 w-full rounded-lg border border-border bg-card pl-9 pr-3 text-sm outline-none focus:border-primary"
-            />
-          </div>
-          <input
-            inputMode="numeric"
-            value={adjustAmount}
-            onChange={(e) => setAdjustAmount(Number(e.target.value.replace(/\D/g, "")) || 0)}
-            className="h-10 w-24 rounded-lg border border-border bg-card px-3 text-sm outline-none focus:border-primary"
-          />
-        </div>
-        <div className="space-y-2">
-          {(adminUsers.data ?? []).map((u) => (
-            <div key={u.id} className="rounded-2xl border border-border/60 bg-card p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-semibold">{u.username}</p>
-                  <p className="text-xs text-muted-foreground">{u.phone}</p>
-                </div>
-                <div className="text-right">
-                  <p className="font-display font-bold">{Number(u.wallet?.bonus_cash ?? 0).toLocaleString("en-IN")}</p>
-                  <p className="text-[11px] text-muted-foreground">credits</p>
-                </div>
-              </div>
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                <Button onClick={() => adjust.mutate({ userId: u.id, delta: adjustAmount })} disabled={adjust.isPending || adjustAmount <= 0}>
-                  <PlusCircle className="h-4 w-4" /> Add
-                </Button>
-                <Button variant="outline" onClick={() => adjust.mutate({ userId: u.id, delta: -adjustAmount })} disabled={adjust.isPending || adjustAmount <= 0}>
-                  <MinusCircle className="h-4 w-4" /> Deduct
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
+        </section>
 
-        <div className="pt-3">
-          <h1 className="font-display text-lg font-bold">Credit Requests</h1>
-          <p className="text-xs text-muted-foreground">Approve a request to add virtual credits to the user's virtual wallet.</p>
-        </div>
-
-        {rows.length === 0 ? (
-          <div className="rounded-xl border border-border/60 bg-card p-5 text-sm text-muted-foreground">
-            No credit requests yet.
-          </div>
-        ) : rows.map((r) => (
+        {requests.length === 0 ? (
+          <div className="rounded-xl border border-border/60 bg-card p-5 text-sm text-muted-foreground">No UPI credit requests yet.</div>
+        ) : requests.map((r) => (
           <div key={r.id} className="rounded-2xl border border-border/60 bg-card p-4">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="font-semibold">{r.profile?.username ?? "Unknown user"}</p>
                 <p className="text-xs text-muted-foreground">{r.profile?.phone ?? r.user_id}</p>
               </div>
-              <Badge variant={r.status === "completed" ? "default" : r.status === "rejected" ? "destructive" : "secondary"}>
-                {r.status}
-              </Badge>
+              <Badge variant={r.status === "approved" ? "default" : r.status === "rejected" ? "destructive" : "secondary"}>{r.status}</Badge>
             </div>
-
-            <div className="mt-3 flex items-center justify-between rounded-xl bg-secondary/60 p-3">
-              <div className="flex items-center gap-2">
-                <Coins className="h-5 w-5 text-primary" />
-                <span className="font-display text-xl font-bold">{Number(r.amount).toLocaleString("en-IN")}</span>
-                <span className="text-xs text-muted-foreground">credits</span>
-              </div>
-              <Clock3 className="h-4 w-4 text-muted-foreground" />
+            <div className="mt-3 rounded-xl bg-secondary/60 p-3">
+              <p className="font-display text-xl font-bold">{Number(r.amount).toLocaleString("en-IN")} credits</p>
+              <p className="mt-1 text-xs text-muted-foreground">UTR: {r.utr}</p>
+              <p className="text-xs text-muted-foreground">UPI: {r.merchant_upi}</p>
+              <p className="text-[11px] text-muted-foreground">{new Date(r.created_at).toLocaleString("en-IN")}</p>
             </div>
-
-            <p className="mt-2 text-[11px] text-muted-foreground">
-              Requested {new Date(r.created_at).toLocaleString("en-IN")}
-            </p>
-
             {r.status === "pending" ? (
               <div className="mt-3 grid grid-cols-2 gap-2">
-                <Button
-                  onClick={() => process.mutate({ id: r.id, approve: true })}
-                  disabled={process.isPending}
-                >
-                  {process.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                  Approve
+                <Button onClick={() => approvePayment.mutate({ id: r.id, userId: r.user_id, amount: Number(r.amount) })} disabled={approvePayment.isPending}>
+                  {approvePayment.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />} Approve
                 </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => process.mutate({ id: r.id, approve: false })}
-                  disabled={process.isPending}
-                >
+                <Button variant="outline" onClick={() => rejectPayment.mutate(r.id)} disabled={rejectPayment.isPending}>
                   <X className="h-4 w-4" /> Reject
                 </Button>
               </div>
             ) : null}
           </div>
         ))}
+
+        <section className="pt-3">
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <h1 className="font-display text-lg font-bold">Virtual Credit Wallet</h1>
+              <p className="text-xs text-muted-foreground">Add or deduct virtual credits. This does not create withdrawable cash.</p>
+            </div>
+            <Coins className="h-5 w-5 text-primary" />
+          </div>
+        </section>
+
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+            <input value={userSearch} onChange={(e) => setUserSearch(e.target.value)} placeholder="Username or phone" className="h-10 w-full rounded-lg border border-border bg-card pl-9 pr-3 text-sm outline-none focus:border-primary" />
+          </div>
+          <input inputMode="numeric" value={adjustAmount} onChange={(e) => setAdjustAmount(Number(e.target.value.replace(/\D/g, "")) || 0)} className="h-10 w-24 rounded-lg border border-border bg-card px-3 text-sm outline-none focus:border-primary" />
+        </div>
+
+        <div className="space-y-2">
+          {(adminUsers.data ?? []).map((u) => (
+            <div key={u.id} className="rounded-2xl border border-border/60 bg-card p-4">
+              <div className="flex items-center justify-between">
+                <div><p className="font-semibold">{u.username}</p><p className="text-xs text-muted-foreground">{u.phone}</p></div>
+                <div className="text-right"><p className="font-display font-bold">{Number(u.wallet?.bonus_cash ?? 0).toLocaleString("en-IN")}</p><p className="text-[11px] text-muted-foreground">credits</p></div>
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <Button onClick={() => adjust.mutate({ userId: u.id, delta: adjustAmount })} disabled={adjust.isPending || adjustAmount <= 0}><PlusCircle className="h-4 w-4" /> Add</Button>
+                <Button variant="outline" onClick={() => adjust.mutate({ userId: u.id, delta: -adjustAmount })} disabled={adjust.isPending || adjustAmount <= 0}><MinusCircle className="h-4 w-4" /> Deduct</Button>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </AppShell>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-2xl border border-border/60 bg-card p-4">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="mt-1 font-display text-2xl font-bold">{value}</p>
+    </div>
   );
 }
