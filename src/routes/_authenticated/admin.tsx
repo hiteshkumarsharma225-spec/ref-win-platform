@@ -19,7 +19,7 @@ function AdminPage() {
   const qc = useQueryClient();
 
   const requests = useQuery({
-    queryKey: ["admin-demo-credit-requests"],
+    queryKey: ["admin-credit-requests"],
     enabled: !!user && !!isAdmin,
     queryFn: async () => {
       const { data, error } = await supabase
@@ -44,7 +44,7 @@ function AdminPage() {
   });
 
   const reviewBattles = useQuery({
-    queryKey: ["admin-demo-battle-reviews"],
+    queryKey: ["admin-battle-reviews"],
     enabled: !!user && !!isAdmin,
     queryFn: async () => {
       const { data: battles, error } = await supabase
@@ -85,7 +85,7 @@ function AdminPage() {
   const [adjustAmount, setAdjustAmount] = useState(100);
 
   const adminUsers = useQuery({
-    queryKey: ["admin-demo-wallet-users", userSearch],
+    queryKey: ["admin-wallet-users", userSearch],
     enabled: !!user && !!isAdmin && userSearch.trim().length >= 2,
     queryFn: async () => {
       const q = userSearch.trim();
@@ -107,33 +107,33 @@ function AdminPage() {
     },
   });
 
-  const resolveDemo = useMutation({
+  const resolve = useMutation({
     mutationFn: async ({ battleId, winnerId }: { battleId: string; winnerId: string }) => {
-      const { error } = await (supabase.rpc as any)("admin_resolve_demo_battle", {
+      const { error } = await (supabase.rpc as any)("admin_resolve__battle", {
         p_battle: battleId,
         p_winner: winnerId,
       });
       if (error) throw error;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["admin-demo-battle-reviews"] });
-      toast.success("Demo battle result approved");
+      qc.invalidateQueries({ queryKey: ["admin-battle-reviews"] });
+      toast.success("Battle result approved");
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const adjustDemo = useMutation({
+  const adjust = useMutation({
     mutationFn: async ({ userId, delta }: { userId: string; delta: number }) => {
-      const { error } = await (supabase.rpc as any)("admin_adjust_demo_credits", {
+      const { error } = await (supabase.rpc as any)("admin_adjust__credits", {
         p_user: userId,
         p_delta: delta,
-        p_note: "Admin demo-credit wallet adjustment",
+        p_note: "Admin credit wallet adjustment",
       });
       if (error) throw error;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["admin-demo-wallet-users"] });
-      toast.success("Demo wallet updated");
+      qc.invalidateQueries({ queryKey: ["admin-wallet-users"] });
+      toast.success("Wallet updated");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -147,9 +147,9 @@ function AdminPage() {
       if (error) throw error;
     },
     onSuccess: (_, variables) => {
-      qc.invalidateQueries({ queryKey: ["admin-demo-credit-requests"] });
-      qc.invalidateQueries({ queryKey: ["admin-demo-battle-reviews"] });
-      toast.success(variables.approve ? "Demo credits approved" : "Request rejected");
+      qc.invalidateQueries({ queryKey: ["admin-credit-requests"] });
+      qc.invalidateQueries({ queryKey: ["admin-battle-reviews"] });
+      toast.success(variables.approve ? "Credits approved" : "Request rejected");
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -213,7 +213,7 @@ function AdminPage() {
         <div>
           <h1 className="font-display text-lg font-bold">Match Result Approvals</h1>
           <p className="text-xs text-muted-foreground">
-            Review pending/disputed demo battles and submitted screenshots. Approval adds virtual demo credits only.
+            Review pending/disputed battles and submitted screenshots. Approval adds virtual credits only.
           </p>
         </div>
         {(reviewBattles.data ?? []).length === 0 ? (
@@ -248,10 +248,10 @@ function AdminPage() {
                   <Button
                     className="mt-2 w-full"
                     size="sm"
-                    onClick={() => resolveDemo.mutate({ battleId: battle.id, winnerId: result.user_id })}
-                    disabled={resolveDemo.isPending || result.claim === "lost"}
+                    onClick={() => resolve.mutate({ battleId: battle.id, winnerId: result.user_id })}
+                    disabled={resolve.isPending || result.claim === "lost"}
                   >
-                    {resolveDemo.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                    {resolve.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
                     Approve {result.profile?.username ?? "player"} as winner
                   </Button>
                 </div>
@@ -261,20 +261,21 @@ function AdminPage() {
               For a player who claimed Lost, select the opponent only when the evidence supports that outcome. If evidence is inconclusive, leave the battle disputed.
             </p>
             <p className="mt-1 text-[11px] text-muted-foreground">
-              Approved rewards are virtual demo credits and are not a cash withdrawal balance.
+              Approved rewards are virtual credits and are not a cash withdrawal balance.
+            </p>
           </div>
         ))}
 
         <div className="pt-3">
           <div className="flex items-center justify-between gap-2">
             <div>
-              <h1 className="font-display text-lg font-bold">Demo Wallet Management</h1>
+              <h1 className="font-display text-lg font-bold">Wallet Management</h1>
               <p className="text-xs text-muted-foreground">Add or deduct virtual credits for testing and friends-only play.</p>
             </div>
             <Coins className="h-5 w-5 text-primary" />
           </div>
           <p className="text-xs text-muted-foreground">
-            Search a user and add or deduct virtual demo credits. This never changes withdrawable cash.
+            Search a user and add or deduct virtual credits. This never changes withdrawable cash.
           </p>
         </div>
         <div className="flex gap-2">
@@ -304,14 +305,14 @@ function AdminPage() {
                 </div>
                 <div className="text-right">
                   <p className="font-display font-bold">{Number(u.wallet?.bonus_cash ?? 0).toLocaleString("en-IN")}</p>
-                  <p className="text-[11px] text-muted-foreground">demo credits</p>
+                  <p className="text-[11px] text-muted-foreground">credits</p>
                 </div>
               </div>
               <div className="mt-3 grid grid-cols-2 gap-2">
-                <Button onClick={() => adjustDemo.mutate({ userId: u.id, delta: adjustAmount })} disabled={adjustDemo.isPending || adjustAmount <= 0}>
+                <Button onClick={() => adjust.mutate({ userId: u.id, delta: adjustAmount })} disabled={adjust.isPending || adjustAmount <= 0}>
                   <PlusCircle className="h-4 w-4" /> Add
                 </Button>
-                <Button variant="outline" onClick={() => adjustDemo.mutate({ userId: u.id, delta: -adjustAmount })} disabled={adjustDemo.isPending || adjustAmount <= 0}>
+                <Button variant="outline" onClick={() => adjust.mutate({ userId: u.id, delta: -adjustAmount })} disabled={adjust.isPending || adjustAmount <= 0}>
                   <MinusCircle className="h-4 w-4" /> Deduct
                 </Button>
               </div>
@@ -320,8 +321,8 @@ function AdminPage() {
         </div>
 
         <div className="pt-3">
-          <h1 className="font-display text-lg font-bold">Demo Credit Requests</h1>
-          <p className="text-xs text-muted-foreground">Approve a request to add virtual credits to the user's demo wallet.</p>
+          <h1 className="font-display text-lg font-bold">Credit Requests</h1>
+          <p className="text-xs text-muted-foreground">Approve a request to add virtual credits to the user's virtual wallet.</p>
         </div>
 
         {rows.length === 0 ? (
@@ -344,7 +345,7 @@ function AdminPage() {
               <div className="flex items-center gap-2">
                 <Coins className="h-5 w-5 text-primary" />
                 <span className="font-display text-xl font-bold">{Number(r.amount).toLocaleString("en-IN")}</span>
-                <span className="text-xs text-muted-foreground">demo credits</span>
+                <span className="text-xs text-muted-foreground">credits</span>
               </div>
               <Clock3 className="h-4 w-4 text-muted-foreground" />
             </div>
