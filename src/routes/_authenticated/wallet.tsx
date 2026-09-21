@@ -167,10 +167,11 @@ function WalletPage() {
             </button>
             <div className="mt-3 text-sm">
               <p className="font-display font-bold">Request virtual demo credits</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              This is a demo wallet. No real payment is required and no money is transferred.
-              Submit the amount you want credited; an admin will approve or reject the request.
-            </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                This is a demo wallet. No real payment is required and no money is transferred.
+                Submit the amount you want credited; an admin will approve or reject the request.
+              </p>
+            </div>
           </div>
 
           <Button
