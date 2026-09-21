@@ -137,6 +137,10 @@ function BattleRoom() {
   }
 
   const isPlayer = b.creator_id === user?.id || b.opponent_id === user?.id;
+  const deadline = b.result_deadline_at ? new Date(b.result_deadline_at).getTime() : null;
+  const remainingSeconds = deadline ? Math.max(0, Math.ceil((deadline - Date.now()) / 1000)) : null;
+  const deadlineMm = remainingSeconds === null ? "--" : String(Math.floor(remainingSeconds / 60)).padStart(2, "0");
+  const deadlineSs = remainingSeconds === null ? "--" : String(remainingSeconds % 60).padStart(2, "0");
   const mm = String(Math.floor(elapsed / 60)).padStart(2, "0");
   const ss = String(elapsed % 60).padStart(2, "0");
 
@@ -161,6 +165,17 @@ function BattleRoom() {
           <Timer className="h-4 w-4" />
           {mm}:{ss} · {statusLabel(b.status)}
         </div>
+        {(b.status === "running" || b.status === "result_pending") && b.result_deadline_at ? (
+          <div className={`mt-3 rounded-xl border p-3 ${remainingSeconds !== null && remainingSeconds <= 60 ? "border-destructive/50 bg-destructive/10" : "border-primary/30 bg-primary/5"}`}>
+            <p className="text-xs text-muted-foreground">Result submission deadline</p>
+            <p className="mt-1 font-display text-2xl font-bold">
+              {deadlineMm}:{deadlineSs}
+            </p>
+            <p className="text-[11px] text-muted-foreground">
+              Submit your result before the timer expires. The server will apply the deadline rule.
+            </p>
+          </div>
+        ) : null}
       </div>
 
       {isPlayer && (b.status === "running" || b.status === "result_pending") ? (
@@ -255,7 +270,10 @@ function BattleRoom() {
       {b.status === "completed" ? (
         <div className="mt-4 rounded-2xl border border-accent/40 bg-accent/10 p-4 text-center">
           <p className="font-display font-bold text-accent">
-            {b.winner_id === user?.id ? `You won ${rupees(b.prize)}!` : "Match completed"}
+            {b.winner_id === user?.id ? "You won the demo battle!" : "Match completed"}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            This version uses virtual/demo credits only.
           </p>
         </div>
       ) : null}
