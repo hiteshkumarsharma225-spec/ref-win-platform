@@ -13,7 +13,11 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedBattlesRouteImport } from './routes/_authenticated/battles'
+import { Route as AuthenticatedKycRouteImport } from './routes/_authenticated/kyc'
+import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedReferRouteImport } from './routes/_authenticated/refer'
+import { Route as AuthenticatedRulesRouteImport } from './routes/_authenticated/rules'
+import { Route as AuthenticatedSupportRouteImport } from './routes/_authenticated/support'
 import { Route as AuthenticatedTransactionsRouteImport } from './routes/_authenticated/transactions'
 import { Route as AuthenticatedWalletRouteImport } from './routes/_authenticated/wallet'
 import { Route as AuthenticatedBattleIdRouteImport } from './routes/_authenticated/battle.$id'
@@ -37,9 +41,29 @@ const AuthenticatedBattlesRoute = AuthenticatedBattlesRouteImport.update({
   path: '/battles',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedKycRoute = AuthenticatedKycRouteImport.update({
+  id: '/kyc',
+  path: '/kyc',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedReferRoute = AuthenticatedReferRouteImport.update({
   id: '/refer',
   path: '/refer',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedRulesRoute = AuthenticatedRulesRouteImport.update({
+  id: '/rules',
+  path: '/rules',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedSupportRoute = AuthenticatedSupportRouteImport.update({
+  id: '/support',
+  path: '/support',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedTransactionsRoute =
@@ -63,7 +87,11 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/battles': typeof AuthenticatedBattlesRoute
+  '/kyc': typeof AuthenticatedKycRoute
+  '/profile': typeof AuthenticatedProfileRoute
   '/refer': typeof AuthenticatedReferRoute
+  '/rules': typeof AuthenticatedRulesRoute
+  '/support': typeof AuthenticatedSupportRoute
   '/transactions': typeof AuthenticatedTransactionsRoute
   '/wallet': typeof AuthenticatedWalletRoute
   '/battle/$id': typeof AuthenticatedBattleIdRoute
@@ -72,7 +100,11 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/battles': typeof AuthenticatedBattlesRoute
+  '/kyc': typeof AuthenticatedKycRoute
+  '/profile': typeof AuthenticatedProfileRoute
   '/refer': typeof AuthenticatedReferRoute
+  '/rules': typeof AuthenticatedRulesRoute
+  '/support': typeof AuthenticatedSupportRoute
   '/transactions': typeof AuthenticatedTransactionsRoute
   '/wallet': typeof AuthenticatedWalletRoute
   '/battle/$id': typeof AuthenticatedBattleIdRoute
@@ -83,7 +115,11 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/battles': typeof AuthenticatedBattlesRoute
+  '/_authenticated/kyc': typeof AuthenticatedKycRoute
+  '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/refer': typeof AuthenticatedReferRoute
+  '/_authenticated/rules': typeof AuthenticatedRulesRoute
+  '/_authenticated/support': typeof AuthenticatedSupportRoute
   '/_authenticated/transactions': typeof AuthenticatedTransactionsRoute
   '/_authenticated/wallet': typeof AuthenticatedWalletRoute
   '/_authenticated/battle/$id': typeof AuthenticatedBattleIdRoute
@@ -94,7 +130,11 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/battles'
+    | '/kyc'
+    | '/profile'
     | '/refer'
+    | '/rules'
+    | '/support'
     | '/transactions'
     | '/wallet'
     | '/battle/$id'
@@ -103,7 +143,11 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/battles'
+    | '/kyc'
+    | '/profile'
     | '/refer'
+    | '/rules'
+    | '/support'
     | '/transactions'
     | '/wallet'
     | '/battle/$id'
@@ -113,7 +157,11 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/battles'
+    | '/_authenticated/kyc'
+    | '/_authenticated/profile'
     | '/_authenticated/refer'
+    | '/_authenticated/rules'
+    | '/_authenticated/support'
     | '/_authenticated/transactions'
     | '/_authenticated/wallet'
     | '/_authenticated/battle/$id'
@@ -155,11 +203,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedBattlesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/kyc': {
+      id: '/_authenticated/kyc'
+      path: '/kyc'
+      fullPath: '/kyc'
+      preLoaderRoute: typeof AuthenticatedKycRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/profile': {
+      id: '/_authenticated/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof AuthenticatedProfileRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/refer': {
       id: '/_authenticated/refer'
       path: '/refer'
       fullPath: '/refer'
       preLoaderRoute: typeof AuthenticatedReferRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/rules': {
+      id: '/_authenticated/rules'
+      path: '/rules'
+      fullPath: '/rules'
+      preLoaderRoute: typeof AuthenticatedRulesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/support': {
+      id: '/_authenticated/support'
+      path: '/support'
+      fullPath: '/support'
+      preLoaderRoute: typeof AuthenticatedSupportRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/transactions': {
@@ -188,7 +264,11 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedBattlesRoute: typeof AuthenticatedBattlesRoute
+  AuthenticatedKycRoute: typeof AuthenticatedKycRoute
+  AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedReferRoute: typeof AuthenticatedReferRoute
+  AuthenticatedRulesRoute: typeof AuthenticatedRulesRoute
+  AuthenticatedSupportRoute: typeof AuthenticatedSupportRoute
   AuthenticatedTransactionsRoute: typeof AuthenticatedTransactionsRoute
   AuthenticatedWalletRoute: typeof AuthenticatedWalletRoute
   AuthenticatedBattleIdRoute: typeof AuthenticatedBattleIdRoute
@@ -196,7 +276,11 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedBattlesRoute: AuthenticatedBattlesRoute,
+  AuthenticatedKycRoute: AuthenticatedKycRoute,
+  AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedReferRoute: AuthenticatedReferRoute,
+  AuthenticatedRulesRoute: AuthenticatedRulesRoute,
+  AuthenticatedSupportRoute: AuthenticatedSupportRoute,
   AuthenticatedTransactionsRoute: AuthenticatedTransactionsRoute,
   AuthenticatedWalletRoute: AuthenticatedWalletRoute,
   AuthenticatedBattleIdRoute: AuthenticatedBattleIdRoute,

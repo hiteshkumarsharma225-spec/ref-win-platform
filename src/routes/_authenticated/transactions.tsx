@@ -11,6 +11,16 @@ export const Route = createFileRoute("/_authenticated/transactions")({
   component: TransactionsPage,
 });
 
+type TxnType =
+  | "deposit"
+  | "withdrawal"
+  | "bet"
+  | "winning"
+  | "referral"
+  | "bonus"
+  | "refund"
+  | "penalty";
+
 const FILTERS = [
   { id: "all", label: "All", types: [] as string[] },
   { id: "deposit", label: "Deposits", types: ["deposit"] },
@@ -30,7 +40,7 @@ function TransactionsPage() {
         .select("*")
         .order("created_at", { ascending: false })
         .limit(100);
-      const types = FILTERS.find((f) => f.id === filter)?.types ?? [];
+      const types = (FILTERS.find((f) => f.id === filter)?.types ?? []) as TxnType[];
       if (types.length) q = q.in("type", types);
       const { data, error } = await q;
       if (error) throw error;
