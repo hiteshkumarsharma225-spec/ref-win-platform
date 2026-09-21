@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Clock3, Coins, Loader2, ShieldAlert, X } from "lucide-react";
+import { Check, Clock3, Coins, Eye, Loader2, ShieldAlert, X } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { Badge } from "@/components/ui/badge";
@@ -42,6 +42,44 @@ function AdminPage() {
     },
   });
 
+  const reviewBattles = useQuery({
+    queryKey: ["admin-demo-battle-reviews"],
+    enabled: !!user && !!isAdmin,
+    queryFn: async () => {
+      const { data: battles, error } = await supabase
+        .from("battles")
+        .select("id,game,creator_id,opponent_id,status,result_deadline_at,created_at")
+        .eq("status", "disputed")
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (error) throw error;
+
+      const ids = (battles ?? []).map((b) => b.id);
+      if (!ids.length) return [];
+      const { data: results, error: resultError } = await supabase
+        .from("battle_results")
+        .select("id,battle_id,user_id,claim,screenshot_url,created_at")
+        .in("battle_id", ids);
+      if (resultError) throw resultError;
+
+      const userIds = [...new Set((results ?? []).map((r) => r.user_id))];
+      const { data: profiles, error: profileError } = userIds.length
+        ? await supabase.from("profiles").select("id,username,phone").in("id", userIds)
+        : { data: [], error: null };
+      if (profileError) throw profileError;
+
+      const byId = new Map((profiles ?? []).map((p) => [p.id, p]));
+      return (battles ?? []).map((battle) => ({
+        ...battle,
+        results: (results ?? []).filter((r) => r.battle_id === battle.id).map((r) => ({
+          ...r,
+          profile: byId.get(r.user_id) ?? null,
+        })),
+      }));
+    },
+    refetchInterval: 5000,
+  });
+
   const process = useMutation({
     mutationFn: async ({ id, approve }: { id: string; approve: boolean }) => {
       const { error } = await supabase.rpc("admin_process_deposit", {
@@ -52,6 +90,7 @@ function AdminPage() {
     },
     onSuccess: (_, variables) => {
       qc.invalidateQueries({ queryKey: ["admin-demo-credit-requests"] });
+      qc.invalidateQueries({ queryKey: ["admin-demo-battle-reviews"] });
       toast.success(variables.approve ? "Demo credits approved" : "Request rejected");
     },
     onError: (error: Error) => toast.error(error.message),
