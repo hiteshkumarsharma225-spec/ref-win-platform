@@ -70,6 +70,30 @@ function AdminPage() {
     }, refetchInterval:5000,
   });
 
+  const approveVirtualWithdrawal = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.rpc("admin_approve_virtual_credit_withdrawal", { p_id: id });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-credit-withdrawals"] });
+      toast.success("Virtual-credit request approved internally");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const completeVirtualWithdrawal = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.rpc("admin_complete_virtual_credit_withdrawal", { p_id: id });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-credit-withdrawals"] });
+      toast.success("Virtual-credit request marked complete");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const kyc = useQuery({
     queryKey:["admin-kyc"],enabled,
     queryFn:async()=>{const {data,error}=await supabase.from("kyc_submissions").select("*").order("created_at",{ascending:false}).limit(200);if(error)throw error;return data??[];},
@@ -177,7 +201,16 @@ function AdminPage() {
 
     {tab==="deposits"&&<Section title="Deposit / Credit Payment Ledger" subtitle="Newest first. Pending UTRs require verification before virtual credits are added.">{(deposits.data??[]).map(d=><Card key={d.id}><div className="flex justify-between"><div><p className="font-semibold">{d.profile?.username??"Player"}</p><p className="text-xs text-muted-foreground">{d.profile?.phone??"—"} · {new Date(d.created_at).toLocaleString("en-IN")}</p></div><Badge variant={d.status==="approved"?"default":d.status==="rejected"?"destructive":"secondary"}>{d.status}</Badge></div><div className="mt-3 rounded-xl bg-secondary/50 p-3 text-sm"><p className="font-bold">{Number(d.amount).toLocaleString("en-IN")} credits</p><p className="text-xs text-muted-foreground">UTR: {d.utr}</p></div>{d.status==="pending"&&<div className="mt-2 grid grid-cols-2 gap-2"><Button onClick={()=>approvePayment.mutate({id:d.id,user_id:d.user_id,amount:Number(d.amount)})}> <Check className="h-4 w-4"/>Approve</Button><Button variant="outline" onClick={()=>rejectPayment.mutate(d.id)}><X className="h-4 w-4"/>Reject</Button></div>}</Card>)}{!(deposits.data??[]).length&&<Empty text="No deposits yet."/>}</Section>}
 
-    {tab==="withdrawals"&&<Section title="Withdrawal Ledger" subtitle="Historical virtual-credit withdrawal records.">{(withdrawals.data??[]).map(w=><Card key={w.id}><div className="flex justify-between"><div><p className="font-semibold">{w.profile?.username??"Player"}</p><p className="text-xs text-muted-foreground">{new Date(w.created_at).toLocaleString("en-IN")}</p></div><Badge>{w.status}</Badge></div><p className="mt-2 font-display text-lg font-bold">{Number(w.amount).toLocaleString("en-IN")} credits</p><p className="mt-3 text-xs text-muted-foreground">Historical ledger only.</p></Card>)}{!(withdrawals.data??[]).length&&<Empty text="No withdrawals yet."/>}</Section>}
+    {tab==="withdrawals"&&<Section title="Withdraw Credits" subtitle="Internal virtual-credit requests only. No cash, UPI or bank payout is performed.">{(withdrawals.data??[]).map(w=><Card key={w.id}>
+      <div className="flex justify-between gap-3">
+        <div><p className="font-semibold">{w.profile?.username??"Player"}</p><p className="text-xs text-muted-foreground">{w.profile?.phone??"—"} · {new Date(w.created_at).toLocaleString("en-IN")}</p></div>
+        <Badge variant={w.status==="successful"?"default":w.status==="cancelled"?"destructive":"secondary"}>{w.status}</Badge>
+      </div>
+      <p className="mt-2 font-display text-lg font-bold">{Number(w.amount).toLocaleString("en-IN")} credits</p>
+      <p className="mt-1 text-xs text-muted-foreground">Credits were reserved from the player's virtual balance. This workflow never converts credits to cash.</p>
+      {w.status==="pending"&&<Button className="mt-3 w-full" onClick={()=>approveVirtualWithdrawal.mutate(w.id)} disabled={approveVirtualWithdrawal.isPending}><Check className="h-4 w-4"/>Approve internal request</Button>}
+      {w.status==="processed"&&<Button className="mt-3 w-full" onClick={()=>completeVirtualWithdrawal.mutate(w.id)} disabled={completeVirtualWithdrawal.isPending}><Check className="h-4 w-4"/>Mark internally completed</Button>}
+    </Card>)}{!(withdrawals.data??[]).length&&<Empty text="No virtual-credit withdrawal requests yet."/>}</Section>}
 
     {tab==="kyc"&&<Section title="KYC Verification" subtitle="Review submitted identity documents.">{(kyc.data??[]).map(k=><Card key={k.id}><div className="flex justify-between"><div><p className="font-semibold">{k.full_name}</p><p className="text-xs text-muted-foreground">{k.doc_type} · {k.doc_number}</p></div><Badge>{k.status}</Badge></div><div className="mt-3 flex flex-wrap gap-2">{[["Front",k.document_front_url],["Back",k.document_back_url],["PAN",k.pan_document_url]].filter(([,u])=>!!u).map(([label,url])=><Button key={label} size="sm" variant="outline" onClick={async()=>{const {data,error}=await supabase.storage.from("kyc-docs").createSignedUrl(String(url),600);if(error)toast.error(error.message);else window.open(data.signedUrl,"_blank","noopener,noreferrer");}}><Eye className="h-4 w-4"/>View {label}</Button>)}</div>{k.status==="pending"&&<div className="mt-3 grid grid-cols-2 gap-2"><Button onClick={()=>reviewKyc.mutate({id:k.id,status:"approved"})}>Approve</Button><Button variant="outline" onClick={()=>reviewKyc.mutate({id:k.id,status:"rejected"})}>Reject</Button></div>}</Card>)}{!(kyc.data??[]).length&&<Empty text="No KYC submissions."/>}</Section>}
 
