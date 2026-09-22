@@ -181,6 +181,45 @@ export type Database = {
         }
         Relationships: []
       }
+      match_complaints: {
+        Row: {
+          id: string
+          battle_id: string
+          user_id: string
+          concern: string
+          proof_url: string | null
+          status: string
+          admin_note: string | null
+          created_at: string
+          resolved_at: string | null
+          resolved_by: string | null
+        }
+        Insert: {
+          id?: string
+          battle_id: string
+          user_id?: string
+          concern: string
+          proof_url?: string | null
+          status?: string
+          admin_note?: string | null
+          created_at?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+        }
+        Update: {
+          id?: string
+          battle_id?: string
+          user_id?: string
+          concern?: string
+          proof_url?: string | null
+          status?: string
+          admin_note?: string | null
+          created_at?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+        }
+        Relationships: []
+      }
       kyc_submissions: {
         Row: {
           admin_note: string | null
@@ -589,6 +628,11 @@ export type Database = {
         Returns: undefined
       }
       claim_admin: { Args: never; Returns: boolean }
+      accept_battle_result: { Args: { p_battle: string }; Returns: string }
+      submit_battle_objection: {
+        Args: { p_battle: string; p_concern: string; p_proof?: string }
+        Returns: string
+      }
       create_battle: {
         Args: { p_amount: number; p_game: string }
         Returns: string
