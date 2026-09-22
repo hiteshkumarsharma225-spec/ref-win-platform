@@ -7,7 +7,7 @@ Build a mobile-first gaming battle and tournament platform inspired by FunBattle
    - Responsive layout optimized for mobile screens (app-like feel with header, status bar, and bottom tabs).
 
 2. **Authentication & Referral System**:
-   - Phone number login/signup with OTP simulation.
+   - Phone number login/signup with real SMS OTP verification (Twilio Verify or the configured Lovable SMS gateway).
    - Referral tracking supporting invite links with referral codes (e.g., `?refer=080545`).
    - Referral dashboard: user's personal referral link, share buttons, earnings history, and commission tiers.
 
