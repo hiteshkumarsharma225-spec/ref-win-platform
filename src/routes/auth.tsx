@@ -84,29 +84,17 @@ function AuthPage() {
     } finally { setBusy(false); }
   };
 
-  const unlockWithMpin = async () => {
-    if (!/^\\d{4}$/.test(mpin)) { toast.error("Enter your 4-digit MPIN."); return; }
-    const saved = localStorage.getItem("refwin_mpin_hash");
-    if (!saved) { toast.error("No MPIN is set on this device. Login with email/password first."); return; }
-    const bytes = new TextEncoder().encode(mpin);
-    const digest = await crypto.subtle.digest("SHA-256", bytes);
-    const hash = Array.from(new Uint8Array(digest)).map(x => x.toString(16).padStart(2, "0")).join("");
-    if (hash !== saved) { toast.error("Incorrect MPIN."); return; }
-    toast.success("MPIN verified");
-    navigate({ to: "/" });
-  };
-
-  const unlockWithBiometric = async () => {
-    if (!window.PublicKeyCredential || !navigator.credentials) {
-      toast.error("Biometric/passkey is not supported on this device/browser.");
-      return;
-    }
+  const signInWithPasskey = async () => {
+    setBusy(true);
     try {
-      const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable?.();
-      if (!available) throw new Error("No device biometric authenticator is available.");
-      toast.info("Biometric/passkey setup is available from Profile after normal login.");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Biometric verification unavailable.");
+      const { error } = await supabase.auth.signInWithPasskey();
+      if (error) throw error;
+      toast.success("Biometric / device PIN verified");
+      navigate({ to: "/" });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Passkey sign-in failed.");
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -135,20 +123,14 @@ function AuthPage() {
         Continue with Google
       </Button>
 
-            <div className="mt-4 grid grid-cols-2 gap-2">
-        <Button variant="outline" onClick={() => setQuickUnlock(quickUnlock === "mpin" ? null : "mpin")}>
-          <LockKeyhole className="h-4 w-4" /> MPIN
+            <div className="mt-4">
+        <Button className="w-full" variant="outline" onClick={() => void signInWithPasskey()} disabled={busy}>
+          <Fingerprint className="mr-2 h-4 w-4" /> Continue with biometric / device PIN
         </Button>
-        <Button variant="outline" onClick={() => void unlockWithBiometric()}>
-          <Fingerprint className="h-4 w-4" /> Biometric
-        </Button>
+        <p className="mt-2 text-center text-xs text-muted-foreground">
+          Uses a secure passkey stored by your device. Your fingerprint/face data never goes to the app.
+        </p>
       </div>
-      {quickUnlock === "mpin" ? (
-        <div className="mt-2 flex gap-2">
-          <Input inputMode="numeric" maxLength={4} type="password" value={mpin} onChange={e => setMpin(e.target.value.replace(/\\D/g, "").slice(0,4))} placeholder="4-digit MPIN" />
-          <Button onClick={() => void unlockWithMpin()}>Unlock</Button>
-        </div>
-      ) : null}
 
 <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground"><span className="h-px flex-1 bg-border"/>OR<span className="h-px flex-1 bg-border"/></div>
 
