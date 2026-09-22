@@ -44,6 +44,40 @@ function AdminPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const withdrawalRequests = useQuery({
+    queryKey: ["admin-credit-withdrawals"],
+    enabled: !!user && !!isAdmin,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("virtual_credit_withdrawals").select("*").order("created_at", { ascending: false }).limit(100);
+      if (error) throw error;
+      const ids = [...new Set((data ?? []).map((r) => r.user_id))];
+      if (!ids.length) return [];
+      const { data: profiles, error: profileError } = await supabase.from("profiles").select("id,username,phone").in("id", ids);
+      if (profileError) throw profileError;
+      const byId = new Map((profiles ?? []).map((p) => [p.id, p]));
+      return (data ?? []).map((r) => ({ ...r, profile: byId.get(r.user_id) ?? null }));
+    },
+    refetchInterval: 5000,
+  });
+
+  const approveWithdrawal = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.rpc("admin_approve_virtual_credit_withdrawal", { p_id: id });
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["admin-credit-withdrawals"] }); toast.success("Withdrawal processed"); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const completeWithdrawal = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.rpc("admin_complete_virtual_credit_withdrawal", { p_id: id });
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["admin-credit-withdrawals"] }); toast.success("Withdrawal marked successful"); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const paymentRequests = useQuery({
     queryKey: ["admin-payment-requests"],
     enabled: !!user && !!isAdmin,
@@ -280,6 +314,29 @@ function AdminPage() {
             </div>
             <p className="mt-3 text-[11px] text-muted-foreground">If evidence is inconclusive, leave the battle disputed.</p>
           </div>
+        ))}
+
+        <section className="pt-3">
+          <h1 className="font-display text-lg font-bold">Credit Withdrawal Requests</h1>
+          <p className="text-xs text-muted-foreground">Manage non-cashable virtual-credit withdrawal requests.</p>
+        </section>
+        {(withdrawalRequests.data ?? []).filter((r) => r.status === "pending" || r.status === "processed").map((r) => (
+          <div key={r.id} className="rounded-2xl border border-border/60 bg-card p-4">
+            <div className="flex items-center justify-between">
+              <div><p className="font-semibold">{r.profile?.username ?? "Unknown user"}</p><p className="text-xs text-muted-foreground">{r.profile?.phone ?? r.user_id}</p></div>
+              <Badge variant={r.status === "pending" ? "secondary" : "default"}>{r.status === "pending" ? "pending" : "processed"}</Badge>
+            </div>
+            <div className="mt-3 rounded-xl bg-secondary/60 p-3"><p className="font-display text-xl font-bold">{Number(r.amount).toLocaleString("en-IN")} credits</p><p className="text-xs text-muted-foreground">{new Date(r.created_at).toLocaleString("en-IN")}</p></div>
+            {r.status === "pending" ? <Button className="mt-3 w-full" onClick={() => approveWithdrawal.mutate(r.id)} disabled={approveWithdrawal.isPending}><Check className="h-4 w-4" /> Withdrawal Complete / Process</Button> : null}
+            {r.status === "processed" ? <Button className="mt-3 w-full" onClick={() => completeWithdrawal.mutate(r.id)} disabled={completeWithdrawal.isPending}><Check className="h-4 w-4" /> Withdrawal Complete</Button> : null}
+          </div>
+        ))}
+        <section className="pt-3">
+          <h1 className="font-display text-lg font-bold">Past Withdrawals</h1>
+          <p className="text-xs text-muted-foreground">Successfully completed credit requests.</p>
+        </section>
+        {(withdrawalRequests.data ?? []).filter((r) => r.status === "successful").map((r) => (
+          <div key={r.id} className="rounded-xl border border-border/60 bg-card p-3 text-sm"><div className="flex justify-between"><span className="font-semibold">{r.profile?.username ?? "Unknown user"}</span><Badge>successful</Badge></div><p className="mt-1 text-muted-foreground">{Number(r.amount).toLocaleString("en-IN")} credits · {new Date(r.created_at).toLocaleString("en-IN")}</p></div>
         ))}
 
         <section className="pt-3">
