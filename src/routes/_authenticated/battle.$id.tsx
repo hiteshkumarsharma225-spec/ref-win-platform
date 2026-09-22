@@ -29,6 +29,7 @@ function BattleRoom() {
     queryKey: ["battle", id],
     refetchInterval: 4000,
     queryFn: async () => {
+      await supabase.rpc("resolve_expired_battles");
       const { data, error } = await supabase.from("battles").select("*").eq("id", id).maybeSingle();
       if (error) throw error;
       return data;
@@ -150,8 +151,8 @@ function BattleRoom() {
         <Badge variant="secondary" className="mb-2">
           {gameName(b.game)}
         </Badge>
-        <p className="font-display text-3xl font-bold gold-text">{rupees(b.prize)}</p>
-        <p className="text-xs text-muted-foreground">Winning prize · Entry {rupees(b.amount)}</p>
+        <p className="font-display text-3xl font-bold gold-text">{rupees(b.prize)} Credits</p>
+        <p className="text-xs text-muted-foreground">Virtual reward · Entry {rupees(b.amount)} Credits</p>
 
         <div className="mt-4 flex items-center justify-center gap-3 text-sm">
           <span className="font-semibold">{players.data?.[b.creator_id] ?? "Player 1"}</span>
