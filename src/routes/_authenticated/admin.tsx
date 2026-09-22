@@ -154,7 +154,7 @@ function AdminPage() {
   });
   const adjust=useMutation({
     mutationFn:async({userId,delta}:{userId:string,delta:number})=>{const {error}=await supabase.rpc("admin_adjust_demo_credits",{p_user:userId,p_delta:delta,p_note:"Admin virtual-credit adjustment"});if(error)throw error;},
-    onSuccess:()=>{qc.invalidateQueries({queryKey:["admin-wallet-users"]});toast.success("Credits updated");},onError:(e:Error)=>toast.error(e.message)
+    onSuccess:()=>{qc.invalidateQueries({queryKey:["admin-users"]});toast.success("Credits updated");},onError:(e:Error)=>toast.error(e.message)
   });
 
   if(roleLoading)return <AppShell title="Admin Dashboard"><Loader2 className="mx-auto mt-20 h-6 w-6 animate-spin"/></AppShell>;
