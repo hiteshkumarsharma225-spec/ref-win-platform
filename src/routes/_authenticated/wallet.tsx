@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ArrowDownToLine, ArrowUpFromLine, Loader2, Receipt, QrCode, Copy } from "lucide-react";
+import { ArrowDownToLine, ArrowUpFromLine, Loader2, Receipt, QrCode, Copy, XCircle, CheckCircle2 } from "lucide-react";
 import QRCode from "qrcode";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,7 @@ function WalletPage() {
   const [utr, setUtr] = useState("");
   const [qrDataUrl, setQrDataUrl] = useState("");
   const [method, setMethod] = useState<"upi" | "bank">("upi");
+  const [withdrawAmount, setWithdrawAmount] = useState(0);
 
   const paymentSettings = useQuery({
     queryKey: ["payment-settings"],
@@ -43,6 +44,35 @@ function WalletPage() {
       if (error) throw error;
       return data;
     },
+  });
+
+  const withdrawalRequests = useQuery({
+    queryKey: ["virtual-credit-withdrawals", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("virtual_credit_withdrawals").select("id,amount,status,created_at,approved_at,completed_at").eq("user_id", user!.id).order("created_at", { ascending: false }).limit(20);
+      if (error) throw error;
+      return data ?? [];
+    },
+    refetchInterval: 5000,
+  });
+
+  const requestWithdrawal = useMutation({
+    mutationFn: async (amount: number) => {
+      const { error } = await supabase.rpc("request_virtual_credit_withdrawal", { p_amount: amount });
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["virtual-credit-withdrawals", user?.id] }); qc.invalidateQueries({ queryKey: ["wallet", user?.id] }); toast.success("Withdrawal request created"); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const cancelWithdrawal = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.rpc("cancel_virtual_credit_withdrawal", { p_id: id });
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["virtual-credit-withdrawals", user?.id] }); qc.invalidateQueries({ queryKey: ["wallet", user?.id] }); toast.success("Request cancelled; credits returned"); },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const creditRequests = useQuery({
@@ -148,7 +178,7 @@ function WalletPage() {
             <ArrowDownToLine className="mr-1 h-4 w-4" /> Add Credits
           </TabsTrigger>
           <TabsTrigger value="withdraw">
-            <ArrowUpFromLine className="mr-1 h-4 w-4" /> Wallet
+            <ArrowUpFromLine className="mr-1 h-4 w-4" /> Withdraw Credits
           </TabsTrigger>
         </TabsList>
 
@@ -251,17 +281,37 @@ function WalletPage() {
 
         <TabsContent value="withdraw" className="space-y-4 pt-4">
           <div className="rounded-2xl border border-border/60 bg-card p-5">
-            <p className="font-display font-bold">Virtual wallet</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Your credits can be used inside the supported virtual-credit experience. Cash withdrawal and payout features are not available here.
-            </p>
+            <p className="font-display font-bold">Withdraw Credits</p>
+            <p className="mt-1 text-sm text-muted-foreground">Only your available non-cashable virtual credits can be requested. Credits are deducted immediately while a request is pending.</p>
             <div className="mt-4 rounded-xl bg-secondary/60 p-4">
-              <p className="text-xs text-muted-foreground">Current virtual credits</p>
+              <p className="text-xs text-muted-foreground">Available credits</p>
               <p className="font-display text-2xl font-bold">{rupees(wallet?.bonus_cash ?? 0)}</p>
             </div>
+            {profile?.kyc_status !== "approved" ? (
+              <div className="mt-3 rounded-xl border border-warning/40 bg-warning/10 p-3 text-sm">KYC approval is required before Withdraw Credits is activated.</div>
+            ) : (
+              <div className="mt-4 space-y-2">
+                <Label htmlFor="withdraw-credit-amount">Credits to withdraw</Label>
+                <Input id="withdraw-credit-amount" inputMode="numeric" placeholder="Enter credits" onChange={(e) => setWithdrawAmount(Number(e.target.value.replace(/\D/g, "")) || 0)} />
+                <Button className="w-full" disabled={requestWithdrawal.isPending || withdrawAmount <= 0 || withdrawAmount > Number(wallet?.bonus_cash ?? 0) || !!withdrawalRequests.data?.some((r) => r.status === "pending" || r.status === "processed")} onClick={() => requestWithdrawal.mutate(withdrawAmount)}>
+                  {requestWithdrawal.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Request Withdrawal
+                </Button>
+              </div>
+            )}
           </div>
-          <div className="rounded-xl border border-warning/40 bg-warning/10 p-3 text-sm">
-            No cash withdrawal is available for these virtual credits.
+          <div className="space-y-2">
+            {(withdrawalRequests.data ?? []).filter((r) => r.status === "pending" || r.status === "processed").map((r) => (
+              <div key={r.id} className="rounded-2xl border border-primary/30 bg-card p-4">
+                <div className="flex items-center gap-2">{r.status === "pending" ? <Loader2 className="h-5 w-5 text-primary" /> : <CheckCircle2 className="h-5 w-5 text-primary" />}<p className="font-semibold">{r.status === "pending" ? "Request Pending" : "Withdrawal Processed"}</p></div>
+                <p className="mt-2 text-sm">{rupees(r.amount)} credits</p>
+                {r.status === "pending" ? <Button variant="outline" className="mt-3 w-full" disabled={cancelWithdrawal.isPending} onClick={() => cancelWithdrawal.mutate(r.id)}><XCircle className="h-4 w-4" /> Cancel Request</Button> : null}
+              </div>
+            ))}
+          </div>
+          <div className="space-y-2">
+            {(withdrawalRequests.data ?? []).filter((r) => r.status === "successful").map((r) => (
+              <div key={r.id} className="rounded-xl border border-border/60 bg-card p-3 text-sm"><div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-success" /><span className="font-semibold">Withdrawal Successful</span></div><p className="mt-1 text-muted-foreground">{rupees(r.amount)} credits</p></div>
+            ))}
           </div>
         </TabsContent>
       </Tabs>
