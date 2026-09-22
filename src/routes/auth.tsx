@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2, Mail, LockKeyhole } from "lucide-react";
+import { ArrowLeft, Loader2, Mail, LockKeyhole, Fingerprint } from "lucide-react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +32,8 @@ function AuthPage() {
   const [referral, setReferral] = useState(search.refer ?? "");
   const [busy, setBusy] = useState(false);
   const [resetSent, setResetSent] = useState(false);
+  const [quickUnlock, setQuickUnlock] = useState<"mpin" | "biometric" | null>(null);
+  const [mpin, setMpin] = useState("");
 
   useEffect(() => {
     const saved = search.refer ?? localStorage.getItem("fb_refer") ?? "";
@@ -82,6 +84,32 @@ function AuthPage() {
     } finally { setBusy(false); }
   };
 
+  const unlockWithMpin = async () => {
+    if (!/^\\d{4}$/.test(mpin)) { toast.error("Enter your 4-digit MPIN."); return; }
+    const saved = localStorage.getItem("refwin_mpin_hash");
+    if (!saved) { toast.error("No MPIN is set on this device. Login with email/password first."); return; }
+    const bytes = new TextEncoder().encode(mpin);
+    const digest = await crypto.subtle.digest("SHA-256", bytes);
+    const hash = Array.from(new Uint8Array(digest)).map(x => x.toString(16).padStart(2, "0")).join("");
+    if (hash !== saved) { toast.error("Incorrect MPIN."); return; }
+    toast.success("MPIN verified");
+    navigate({ to: "/" });
+  };
+
+  const unlockWithBiometric = async () => {
+    if (!window.PublicKeyCredential || !navigator.credentials) {
+      toast.error("Biometric/passkey is not supported on this device/browser.");
+      return;
+    }
+    try {
+      const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable?.();
+      if (!available) throw new Error("No device biometric authenticator is available.");
+      toast.info("Biometric/passkey setup is available from Profile after normal login.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Biometric verification unavailable.");
+    }
+  };
+
   const forgotPassword = async () => {
     if (!email.trim()) { toast.error("Enter your email first."); return; }
     setBusy(true);
@@ -107,7 +135,22 @@ function AuthPage() {
         Continue with Google
       </Button>
 
-      <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground"><span className="h-px flex-1 bg-border"/>OR<span className="h-px flex-1 bg-border"/></div>
+            <div className="mt-4 grid grid-cols-2 gap-2">
+        <Button variant="outline" onClick={() => setQuickUnlock(quickUnlock === "mpin" ? null : "mpin")}>
+          <LockKeyhole className="h-4 w-4" /> MPIN
+        </Button>
+        <Button variant="outline" onClick={() => void unlockWithBiometric()}>
+          <Fingerprint className="h-4 w-4" /> Biometric
+        </Button>
+      </div>
+      {quickUnlock === "mpin" ? (
+        <div className="mt-2 flex gap-2">
+          <Input inputMode="numeric" maxLength={4} type="password" value={mpin} onChange={e => setMpin(e.target.value.replace(/\\D/g, "").slice(0,4))} placeholder="4-digit MPIN" />
+          <Button onClick={() => void unlockWithMpin()}>Unlock</Button>
+        </div>
+      ) : null}
+
+<div className="my-5 flex items-center gap-3 text-xs text-muted-foreground"><span className="h-px flex-1 bg-border"/>OR<span className="h-px flex-1 bg-border"/></div>
 
       <div className="space-y-4">
         {mode === "signup" ? <div className="space-y-2"><Label>Username</Label><Input value={username} maxLength={20} onChange={e=>setUsername(e.target.value)} placeholder="Choose a display name"/></div> : null}
