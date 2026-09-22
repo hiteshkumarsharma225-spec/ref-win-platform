@@ -36,6 +36,7 @@ function KycPage() {
       const { data, error } = await supabase
         .from("kyc_submissions")
         .select("*")
+        .eq("user_id", user!.id)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
@@ -50,7 +51,7 @@ function KycPage() {
       if (docType === "aadhaar" && (!/^\d{12}$/.test(docNumber.replace(/\D/g, "")) || !frontFile || !backFile)) throw new Error("Aadhaar number and front/back photos are required.");
 
       const upload = async (selected: File, label: string) => {
-        const path = user.id + "/" + Date.now() + "-" + label + "-" + selected.name.replace(/[^\\w.-]/g, "");
+        const path = user.id + "/" + Date.now() + "-" + label + "-" + selected.name.replace(/[^\w.-]/g, "");
         const { error: upErr } = await supabase.storage.from("kyc-docs").upload(path, selected);
         if (upErr) throw upErr;
         return path;
