@@ -36,7 +36,7 @@ export function AppShell({
               म
             </span>
             <span className="font-display text-lg font-bold tracking-tight">
-              {title ?? "मजा को मुक़ाबलो"}
+              {title ?? "REAL LUDO PLAYER"}
             </span>
           </Link>
         </div>
@@ -78,7 +78,7 @@ export function AppShell({
       <header className="fixed inset-x-0 top-0 z-30 hidden h-16 border-b border-border/60 bg-background/95 backdrop-blur lg:block lg:pl-64">
         <div className="flex h-full items-center justify-between px-6 xl:px-8">
           <div className="text-sm text-muted-foreground">
-            {title ?? "मजा को मुक़ाबलो"}
+            {title ?? "REAL LUDO PLAYER"}
           </div>
           {showBalance && user ? (
             <Link
@@ -101,7 +101,7 @@ export function AppShell({
                 म
               </span>
               <span className="font-display text-lg font-bold tracking-tight">
-                {title ?? "मजा को मुक़ाबलो"}
+                {title ?? "REAL LUDO PLAYER"}
               </span>
             </Link>
             {showBalance && user ? (
