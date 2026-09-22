@@ -102,10 +102,10 @@ function BattleRoom() {
       <p className="font-display font-bold">Opponent result submitted</p>
       <p className="mt-1 text-sm">Claim: <span className="font-semibold">{firstResult.claim}</span></p>
       {responseLeft!==null&&<p className="mt-2 font-display text-2xl font-bold">{fmt(responseLeft)}</p>}
-      <p className="text-xs text-muted-foreground">You have 15 minutes from the opponent's submission to accept or object.</p>
-      <div className="mt-3 flex gap-2"><Button className="flex-1" onClick={()=>accept.mutate()} disabled={accept.isPending||responseLeft===0}><CheckIcon/>Accept result</Button><Button variant="destructive" className="flex-1" onClick={()=>objectionFile.current?.click()} disabled={responseLeft===0}>Object</Button></div>
+      <p className="text-xs text-muted-foreground">Accept window: 15 minutes. Objection window: 5 minutes from the opponent's submission.</p>
+      <div className="mt-3 flex gap-2"><Button className="flex-1" onClick={()=>accept.mutate()} disabled={accept.isPending||responseLeft===0}><CheckIcon/>Accept result</Button><Button variant="destructive" className="flex-1" onClick={()=>objectionFile.current?.click()} disabled={objectionLeft===0}>Object</Button></div>
       <input ref={objectionFile} type="file" accept="image/*" className="hidden" onChange={e=>{const f=e.target.files?.[0];if(f)void uploadObjection(f)}}/>
-      {objectionProof&&<p className="mt-2 text-xs text-success">Proof attached.</p>}
+      {objectionProof&&<p className="mt-2 text-xs text-success">Proof attached.</p>}{objectionLeft!==null&&<p className="mt-1 text-[11px] text-muted-foreground">Objection timer: {fmt(objectionLeft)}</p>}
       <textarea value={objection} onChange={e=>setObjection(e.target.value)} placeholder="Write your concern..." className="mt-3 min-h-20 w-full rounded-xl border border-border bg-background p-3 text-sm"/>
       <Button className="mt-2 w-full" onClick={()=>object.mutate()} disabled={object.isPending||objection.trim().length<3||responseLeft===0}>Submit objection</Button>
       <p className="mt-2 text-[11px] text-muted-foreground">Proof upload is optional but recommended for an objection.</p>
