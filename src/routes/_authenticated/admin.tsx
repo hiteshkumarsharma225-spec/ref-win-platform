@@ -144,8 +144,8 @@ function AdminPage() {
     {tab==="overview"&&<div className="mt-4 grid gap-3 sm:grid-cols-2">
       <Panel title="Match operations" text={pendingMatches.length+" matches need review."} onClick={()=>setTab("matches")}/>
       <Panel title="Complaint center" text={openComplaints.length+" complaints awaiting action."} onClick={()=>setTab("complaints")}/>
-      <Panel title="Deposit ledger" text={deposits.data?.length??0+" payment records."} onClick={()=>setTab("deposits")}/>
-      <Panel title="Withdrawal ledger" text={withdrawals.data?.length??0+" records."} onClick={()=>setTab("withdrawals")}/>
+      <Panel title="Deposit ledger" text={(deposits.data?.length ?? 0)+" payment records."} onClick={()=>setTab("deposits")}/>
+      <Panel title="Withdrawal ledger" text={(withdrawals.data?.length ?? 0)+" records."} onClick={()=>setTab("withdrawals")}/>
       <Panel title="KYC center" text={kyc.data?.length??0+" submissions."} onClick={()=>setTab("kyc")}/>
       <Panel title="Player management" text="Search and adjust virtual credits." onClick={()=>setTab("users")}/>
     </div>}
