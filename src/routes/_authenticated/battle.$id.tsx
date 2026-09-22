@@ -84,7 +84,6 @@ function BattleRoom() {
   const objectionLeft=objectionDeadline?Math.max(0,Math.ceil((objectionDeadline-now)/1000)):null;
   const fmt=(s:number|null)=>s===null?"--:--":String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0");
   const mm=String(Math.floor(elapsed/60)).padStart(2,"0"),ss=String(elapsed%60).padStart(2,"0");
-  const isOpponentToFirstResult=!!opponentResult===false && !!myResult===false; // UI below uses actual first-result owner
   const firstResult=results.data?.[0];
   const canRespond=!!isPlayer&&b.status==="result_pending"&&!!opponentResult&&!myResult;
   const complaintAllowed=b.status==="completed"||b.status==="disputed"||b.status==="cancelled";
