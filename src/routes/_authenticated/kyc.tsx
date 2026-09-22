@@ -27,7 +27,7 @@ function KycPage() {
   const [mobile, setMobile] = useState(profile?.phone ?? "");
   const [frontFile, setFrontFile] = useState<File | null>(null);
   const [backFile, setBackFile] = useState<File | null>(null);
-  const [file, setFile] = useState<File | null>(null);
+  const [panFile, setPanFile] = useState<File | null>(null);
 
   const submissions = useQuery({
     queryKey: ["kyc", user?.id],
@@ -49,12 +49,26 @@ function KycPage() {
       if (!mobile.match(/^[6-9]\\d{9}$/)) throw new Error("Enter a valid 10-digit mobile number.");
       if (docType === "aadhaar" && (!/^\\d{12}$/.test(docNumber.replace(/\\D/g, "")) || !frontFile || !backFile)) throw new Error("Aadhaar number and front/back photos are required.");
 
-      let docUrl: string | null = null;
-      if (file) {
-        const path = `${user.id}/${Date.now()}-${file.name.replace(/[^\w.-]/g, "")}`;
-        const { error: upErr } = await supabase.storage.from("kyc-docs").upload(path, file);
+      const upload = async (selected: File, label: string) => {
+        const path = user.id + "/" + Date.now() + "-" + label + "-" + selected.name.replace(/[^\\w.-]/g, "");
+        const { error: upErr } = await supabase.storage.from("kyc-docs").upload(path, selected);
         if (upErr) throw upErr;
-        docUrl = path;
+        return path;
+      };
+
+      let frontUrl: string | null = null;
+      let backUrl: string | null = null;
+      let panUrl: string | null = null;
+
+      if (docType === "aadhaar") {
+        frontUrl = await upload(frontFile!, "aadhaar-front");
+        backUrl = await upload(backFile!, "aadhaar-back");
+      } else {
+        if (!/^[A-Z]{5}\\d{4}[A-Z]$/.test(docNumber.trim().toUpperCase())) {
+          throw new Error("Enter a valid PAN number.");
+        }
+        if (!panFile) throw new Error("PAN card photo is required.");
+        panUrl = await upload(panFile, "pan");
       }
 
       const { error } = await supabase.from("kyc_submissions").insert({
@@ -62,16 +76,17 @@ function KycPage() {
         doc_type: docType,
         doc_number: docNumber.trim(),
         full_name: fullName.trim(),
-        doc_url: docUrl,
+        doc_url: frontUrl ?? panUrl,
         mobile_number: mobile,
-        document_front_url: docUrl,
-        document_back_url: backFile ? backFile.name : null,
+        document_front_url: frontUrl,
+        document_back_url: backUrl,
+        pan_document_url: panUrl,
       });
       if (error) throw error;
     },
     onSuccess: () => {
       setDocNumber("");
-      setFrontFile(null); setBackFile(null);
+      setFrontFile(null); setBackFile(null); setPanFile(null);
       qc.invalidateQueries();
       toast.success("KYC submitted", { description: "We review documents within 24 hours." });
     },
@@ -93,8 +108,7 @@ function KycPage() {
           </div>
         </div>
         <p className="mt-3 text-sm leading-6 text-muted-foreground">
-          Verification is required before you can withdraw winnings. Submit an Aadhaar or PAN document
-          matching your account details.
+          Submit your identity details and document photos. Your submission goes to an admin for manual verification. Wallet actions remain restricted until KYC is approved.
         </p>
       </div>
 
@@ -131,6 +145,22 @@ function KycPage() {
               onChange={(e) => setFrontFile(e.target.files?.[0] ?? null)}
             />
           </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="kyc-mobile">Mobile number</Label>
+            <Input id="kyc-mobile" inputMode="numeric" maxLength={10} value={mobile} onChange={(e) => setMobile(e.target.value.replace(/\D/g, "").slice(0, 10))} />
+          </div>
+          {docType === "aadhaar" ? (
+            <div className="space-y-2">
+              <Label htmlFor="kyc-back-file">Aadhaar back photo</Label>
+              <Input id="kyc-back-file" type="file" accept="image/*" onChange={(e) => setBackFile(e.target.files?.[0] ?? null)} />
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Label htmlFor="kyc-pan-file">PAN card photo</Label>
+              <Input id="kyc-pan-file" type="file" accept="image/*" onChange={(e) => setPanFile(e.target.files?.[0] ?? null)} />
+            </div>
+          )}
 
           <Button className="w-full" disabled={submit.isPending} onClick={() => submit.mutate()}>
             {submit.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
