@@ -10,13 +10,13 @@ import { supabase } from "@/integrations/supabase/client";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "FunBattle — Ludo Battle Lobby" },
+      { title: "REAL LUDO PLAYER — Ludo Battle Lobby" },
       {
         name: "description",
         content:
-          "Pick a game, set your entry amount and battle real players for cash prizes on FunBattle.",
+          "Pick a game, set your entry amount and battle real players for cash prizes on REAL LUDO PLAYER.",
       },
-      { property: "og:title", content: "FunBattle — Ludo Battle Lobby" },
+      { property: "og:title", content: "REAL LUDO PLAYER — Ludo Battle Lobby" },
       {
         property: "og:description",
         content: "Pick a game, set your entry amount and battle real players for cash prizes.",
