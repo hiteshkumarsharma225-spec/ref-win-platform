@@ -10,14 +10,14 @@ export const GAMES = [
 export const BATTLE_AMOUNTS = [50, 100, 250, 500, 1000, 2000];
 export const DEPOSIT_AMOUNTS = [50, 100, 200, 500, 1000, 2000];
 
-export const COMMISSION_RATE = 0.05;
+export const COMMISSION_RATE = 0;
 export const MIN_WITHDRAWAL = 100;
 export const MIN_BATTLE = 10;
 export const REFERRAL_RATE = 0.02;
 export const UPI_ID = "funbattle@upi";
 
 export function prizeFor(amount: number) {
-  return Math.round(amount * 2 * (1 - COMMISSION_RATE) * 100) / 100;
+  return Math.round(amount * 1.9 * 100) / 100;
 }
 
 export function gameName(id: string) {
