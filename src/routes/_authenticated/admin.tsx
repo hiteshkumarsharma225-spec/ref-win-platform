@@ -358,7 +358,7 @@ function AdminPage() {
               ].filter(([, url]) => !!url).map(([label, url]) => (
                 <Button key={label} size="sm" variant="outline" onClick={async () => {
                   const { data, error } = await supabase.storage.from("kyc-docs").createSignedUrl(String(url), 600);
-                  if (error) return toast.error(error.message);
+                  if (error) { toast.error(error.message); return; }
                   window.open(data.signedUrl, "_blank", "noopener,noreferrer");
                 }}>
                   <Eye className="h-4 w-4" /> View {label}
