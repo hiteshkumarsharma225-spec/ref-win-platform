@@ -5,18 +5,6 @@ export const GAMES = [
     tagline: "Play with 1 token · Classic rules",
     emoji: "🎲",
   },
-  {
-    id: "ludo-popular",
-    name: "Ludo Popular",
-    tagline: "Most played · 4 tokens",
-    emoji: "🏆",
-  },
-  {
-    id: "quick-ludo",
-    name: "Quick Ludo",
-    tagline: "Fast 5 minute matches",
-    emoji: "⚡",
-  },
 ] as const;
 
 export const BATTLE_AMOUNTS = [50, 100, 250, 500, 1000, 2000];
