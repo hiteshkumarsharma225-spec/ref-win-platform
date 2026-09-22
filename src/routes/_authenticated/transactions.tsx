@@ -1,11 +1,10 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useUser } from "@/lib/account";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { AppShell } from "@/components/AppShell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Upload, MessageSquareWarning } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { rupees } from "@/lib/game";
@@ -36,10 +35,6 @@ const FILTERS = [
 function TransactionsPage() {
   const [filter, setFilter] = useState("all");
   const { user } = useUser();
-  const [complaintBattle, setComplaintBattle] = useState<string | null>(null);
-  const [complaintText, setComplaintText] = useState("");
-  const [complaintProof, setComplaintProof] = useState("");
-  const complaintFile = useRef<HTMLInputElement>(null);
 
   const txns = useQuery({
     queryKey: ["transactions", filter],
@@ -141,51 +136,7 @@ function TransactionsPage() {
         })}
       </div>
 
-      <h2 className="mb-3 mt-8 font-display text-lg font-bold">Battle History</h2>
-      <div className="space-y-2">
-        {(battles.data ?? []).length === 0 ? (
-          <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">No battles played yet.</p>
-        ) : null}
-        {(battles.data ?? []).map((b) => {
-          const opponentId = b.creator_id === user?.id ? b.opponent_id : b.creator_id;
-          const opponent = opponentId ? players.data?.[opponentId] ?? "Player" : "Waiting for opponent";
-          const isWinner = b.winner_id === user?.id;
-          const result = b.status === "open" ? "Open" : b.status === "cancelled" ? "Refunded" : b.status === "disputed" ? "Disputed" : b.status === "completed" ? (isWinner ? "Won" : "Lost") : b.status.replace("_", " ");
-          return (
-            <div key={b.id} className="rounded-xl border border-border/60 bg-card p-3">
-              <div className="flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold">{b.game} · vs {opponent}</p>
-                  <p className="text-[11px] text-muted-foreground">{new Date(b.created_at).toLocaleString("en-IN")}</p>
-                </div>
-                <Badge variant={result === "Won" ? "default" : "secondary"}>{result}</Badge>
-              </div>
-              <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
-                <div><p className="text-muted-foreground">Entry</p><p className="font-semibold">{rupees(b.amount)} Credits</p></div>
-                <div><p className="text-muted-foreground">{isWinner ? "Reward" : "Virtual Reward"}</p><p className="font-semibold text-accent">{rupees(b.prize)} Credits</p></div>
-              </div>
-              <div className="mt-3 border-t border-border/50 pt-3">
-                {complaintBattle === b.id ? (
-                  <div className="space-y-2">
-                    <textarea value={complaintText} onChange={(e) => setComplaintText(e.target.value)} placeholder="Describe your concern..." className="min-h-20 w-full rounded-xl border border-border bg-background p-3 text-xs" />
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="outline" onClick={() => complaintFile.current?.click()}><Upload className="h-4 w-4" /> Upload proof</Button>
-                      {complaintProof ? <span className="self-center text-[11px] text-success">Proof attached</span> : null}
-                    </div>
-                    <input ref={complaintFile} type="file" accept="image/*" className="hidden" onChange={(e) => { const f=e.target.files?.[0]; if(f) void uploadComplaint(f); }} />
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button size="sm" onClick={() => void sendComplaint()} disabled={complaintText.trim().length < 3}>Send complaint</Button>
-                      <Button size="sm" variant="outline" onClick={() => { setComplaintBattle(null); setComplaintText(""); setComplaintProof(""); }}>Cancel</Button>
-                    </div>
-                  </div>
-                ) : (
-                  <Button size="sm" variant="outline" onClick={() => setComplaintBattle(b.id)}><MessageSquareWarning className="h-4 w-4" /> Complaint about this match</Button>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      <div className="mt-8 rounded-xl border border-border/60 bg-card p-4 text-sm text-muted-foreground">For running/completed battles, opponent details, results and complaints, open <span className="font-semibold text-foreground">My Battles</span> from the bottom navigation.</div>
     </AppShell>
   );
 }
