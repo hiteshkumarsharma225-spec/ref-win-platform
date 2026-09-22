@@ -60,6 +60,8 @@ export type Database = {
           opponent_id: string | null
           prize: number
           result_deadline_at: string | null
+          opponent_result_deadline_at: string | null
+          objection_deadline_at: string | null
           result_resolution: string | null
           result_resolved_at: string | null
           room_code: string | null
@@ -78,6 +80,8 @@ export type Database = {
           opponent_id?: string | null
           prize: number
           result_deadline_at?: string | null
+          opponent_result_deadline_at?: string | null
+          objection_deadline_at?: string | null
           result_resolution?: string | null
           result_resolved_at?: string | null
           room_code?: string | null
