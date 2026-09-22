@@ -20,6 +20,30 @@ function AdminPage() {
   const [userSearch, setUserSearch] = useState("");
   const [adjustAmount, setAdjustAmount] = useState(100);
 
+  const kycRequests = useQuery({
+    queryKey: ["admin-kyc"],
+    enabled: !!user && !!isAdmin,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("kyc_submissions").select("*").order("created_at", { ascending: false }).limit(100);
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+    refetchInterval: 5000,
+  });
+
+  const reviewKyc = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: "approved" | "rejected" }) => {
+      const { error } = await supabase.rpc("admin_review_kyc", { p_id: id, p_status: status, p_note: status === "approved" ? "KYC approved by admin." : "KYC rejected by admin." });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-kyc"] });
+      qc.invalidateQueries({ queryKey: ["profile"] });
+      toast.success("KYC status updated");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const paymentRequests = useQuery({
     queryKey: ["admin-payment-requests"],
     enabled: !!user && !!isAdmin,
@@ -255,6 +279,21 @@ function AdminPage() {
               ))}
             </div>
             <p className="mt-3 text-[11px] text-muted-foreground">If evidence is inconclusive, leave the battle disputed.</p>
+          </div>
+        ))}
+
+        <section className="pt-3">
+          <h1 className="font-display text-lg font-bold">KYC Verification Requests</h1>
+          <p className="text-xs text-muted-foreground">Review identity details and document photos before approving KYC.</p>
+        </section>
+        {(kycRequests.data ?? []).map((k) => (
+          <div key={k.id} className="rounded-2xl border border-border/60 bg-card p-4">
+            <div className="flex items-center justify-between">
+              <div><p className="font-semibold">{k.full_name}</p><p className="text-xs text-muted-foreground">{k.mobile_number ?? "—"} · {String(k.doc_type).toUpperCase()}</p></div>
+              <Badge variant={k.status === "approved" ? "default" : k.status === "rejected" ? "destructive" : "secondary"}>{k.status}</Badge>
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">Document: {k.doc_number}</p>
+            {k.status === "pending" ? <div className="mt-3 grid grid-cols-2 gap-2"><Button onClick={() => reviewKyc.mutate({ id: k.id, status: "approved" })}>Approve</Button><Button variant="outline" onClick={() => reviewKyc.mutate({ id: k.id, status: "rejected" })}>Reject</Button></div> : null}
           </div>
         ))}
 
