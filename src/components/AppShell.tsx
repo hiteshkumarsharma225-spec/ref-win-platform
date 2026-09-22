@@ -10,7 +10,7 @@ import { rupees } from "@/lib/game";
 
 const TABS = [
   { to: "/", label: "Home", icon: Home },
-  { to: "/battles", label: "Battles", icon: Gamepad2 },
+  { to: "/battles", label: "My Battles", icon: Gamepad2 },
   { to: "/wallet", label: "Wallet", icon: Wallet },
   { to: "/refer", label: "Refer", icon: Users },
   { to: "/profile", label: "Profile", icon: User },
