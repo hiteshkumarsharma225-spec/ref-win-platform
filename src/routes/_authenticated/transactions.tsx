@@ -52,36 +52,6 @@ function TransactionsPage() {
     },
   });
 
-  const battles = useQuery({
-    queryKey: ["battle-history", user?.id],
-    enabled: !!user,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("battles")
-        .select("id, game, amount, prize, status, creator_id, opponent_id, winner_id, created_at")
-        .or(`creator_id.eq.${user!.id},opponent_id.eq.${user!.id}`)
-        .order("created_at", { ascending: false })
-        .limit(100);
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
-
-  const opponentIds = Array.from(new Set(
-    (battles.data ?? [])
-      .map((b) => (b.creator_id === user?.id ? b.opponent_id : b.creator_id))
-      .filter(Boolean),
-  )) as string[];
-
-  const players = useQuery({
-    queryKey: ["battle-history-players", opponentIds.join(",")],
-    enabled: opponentIds.length > 0,
-    queryFn: async () => {
-      const { data, error } = await supabase.from("profiles").select("id, username").in("id", opponentIds);
-      if (error) throw error;
-      return Object.fromEntries((data ?? []).map((p) => [p.id, p.username])) as Record<string, string>;
-    },
-  });
 
   return (
     <AppShell>
