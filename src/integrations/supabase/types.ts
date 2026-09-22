@@ -56,8 +56,12 @@ export type Database = {
           creator_id: string
           game: string
           id: string
+          open_expires_at: string | null
           opponent_id: string | null
           prize: number
+          result_deadline_at: string | null
+          result_resolution: string | null
+          result_resolved_at: string | null
           room_code: string | null
           settled_at: string | null
           started_at: string | null
@@ -70,8 +74,12 @@ export type Database = {
           creator_id: string
           game: string
           id?: string
+          open_expires_at?: string | null
           opponent_id?: string | null
           prize: number
+          result_deadline_at?: string | null
+          result_resolution?: string | null
+          result_resolved_at?: string | null
           room_code?: string | null
           settled_at?: string | null
           started_at?: string | null
@@ -84,13 +92,62 @@ export type Database = {
           creator_id?: string
           game?: string
           id?: string
+          open_expires_at?: string | null
           opponent_id?: string | null
           prize?: number
+          result_deadline_at?: string | null
+          result_resolution?: string | null
+          result_resolved_at?: string | null
           room_code?: string | null
           settled_at?: string | null
           started_at?: string | null
           status?: Database["public"]["Enums"]["battle_status"]
           winner_id?: string | null
+        }
+        Relationships: []
+      }
+      credit_payment_requests: {
+        Row: {
+          admin_note: string | null
+          amount: number
+          created_at: string
+          id: string
+          merchant_upi: string
+          payment_note: string | null
+          processed_at: string | null
+          processed_by: string | null
+          qr_reference: string | null
+          status: string
+          user_id: string
+          utr: string
+        }
+        Insert: {
+          admin_note?: string | null
+          amount: number
+          created_at?: string
+          id?: string
+          merchant_upi: string
+          payment_note?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          qr_reference?: string | null
+          status?: string
+          user_id: string
+          utr: string
+        }
+        Update: {
+          admin_note?: string | null
+          amount?: number
+          created_at?: string
+          id?: string
+          merchant_upi?: string
+          payment_note?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          qr_reference?: string | null
+          status?: string
+          user_id?: string
+          utr?: string
         }
         Relationships: []
       }
@@ -131,8 +188,12 @@ export type Database = {
           doc_number: string
           doc_type: string
           doc_url: string | null
+          document_back_url: string | null
+          document_front_url: string | null
           full_name: string
           id: string
+          mobile_number: string | null
+          pan_document_url: string | null
           status: Database["public"]["Enums"]["kyc_status"]
           user_id: string
         }
@@ -142,8 +203,12 @@ export type Database = {
           doc_number: string
           doc_type: string
           doc_url?: string | null
+          document_back_url?: string | null
+          document_front_url?: string | null
           full_name: string
           id?: string
+          mobile_number?: string | null
+          pan_document_url?: string | null
           status?: Database["public"]["Enums"]["kyc_status"]
           user_id: string
         }
@@ -153,10 +218,83 @@ export type Database = {
           doc_number?: string
           doc_type?: string
           doc_url?: string | null
+          document_back_url?: string | null
+          document_front_url?: string | null
           full_name?: string
           id?: string
+          mobile_number?: string | null
+          pan_document_url?: string | null
           status?: Database["public"]["Enums"]["kyc_status"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      otp_requests: {
+        Row: {
+          attempt_count: number
+          created_at: string
+          expires_at: string
+          id: string
+          phone: string
+          provider: string
+          provider_status: string | null
+          purpose: string
+          verified: boolean
+          verified_at: string | null
+        }
+        Insert: {
+          attempt_count?: number
+          created_at?: string
+          expires_at?: string
+          id?: string
+          phone: string
+          provider?: string
+          provider_status?: string | null
+          purpose?: string
+          verified?: boolean
+          verified_at?: string | null
+        }
+        Update: {
+          attempt_count?: number
+          created_at?: string
+          expires_at?: string
+          id?: string
+          phone?: string
+          provider?: string
+          provider_status?: string | null
+          purpose?: string
+          verified?: boolean
+          verified_at?: string | null
+        }
+        Relationships: []
+      }
+      payment_settings: {
+        Row: {
+          created_at: string
+          currency: string
+          id: string
+          is_active: boolean
+          merchant_name: string
+          merchant_upi: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          id?: string
+          is_active?: boolean
+          merchant_name?: string
+          merchant_upi: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          id?: string
+          is_active?: boolean
+          merchant_name?: string
+          merchant_upi?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -285,6 +423,42 @@ export type Database = {
         }
         Relationships: []
       }
+      virtual_credit_withdrawals: {
+        Row: {
+          amount: number
+          approved_at: string | null
+          approved_by: string | null
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          id: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          approved_at?: string | null
+          approved_by?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          id?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          approved_at?: string | null
+          approved_by?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          id?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       wallets: {
         Row: {
           bonus_cash: number
@@ -360,6 +534,18 @@ export type Database = {
     }
     Functions: {
       accept_battle: { Args: { p_battle: string }; Returns: undefined }
+      admin_adjust_demo_credits: {
+        Args: { p_delta: number; p_note?: string; p_user: string }
+        Returns: undefined
+      }
+      admin_approve_virtual_credit_withdrawal: {
+        Args: { p_id: string }
+        Returns: undefined
+      }
+      admin_complete_virtual_credit_withdrawal: {
+        Args: { p_id: string }
+        Returns: undefined
+      }
       admin_metrics: { Args: never; Returns: Json }
       admin_process_deposit: {
         Args: { p_approve: boolean; p_id: string }
@@ -385,7 +571,23 @@ export type Database = {
         Args: { p_battle: string; p_winner?: string }
         Returns: undefined
       }
+      admin_resolve_demo_battle: {
+        Args: { p_battle: string; p_winner: string }
+        Returns: undefined
+      }
+      admin_review_kyc: {
+        Args: {
+          p_id: string
+          p_note?: string
+          p_status: Database["public"]["Enums"]["kyc_status"]
+        }
+        Returns: undefined
+      }
       cancel_open_battle: { Args: { p_battle: string }; Returns: undefined }
+      cancel_virtual_credit_withdrawal: {
+        Args: { p_id: string }
+        Returns: undefined
+      }
       claim_admin: { Args: never; Returns: boolean }
       create_battle: {
         Args: { p_amount: number; p_game: string }
@@ -395,6 +597,7 @@ export type Database = {
         Args: { p_amount: number; p_utr: string }
         Returns: string
       }
+      expire_open_battles: { Args: never; Returns: number }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -402,7 +605,12 @@ export type Database = {
         }
         Returns: boolean
       }
+      process_expired_battle_results: { Args: never; Returns: number }
       refund_battle: { Args: { _battle: string }; Returns: undefined }
+      request_virtual_credit_withdrawal: {
+        Args: { p_amount: number }
+        Returns: string
+      }
       request_withdrawal: {
         Args: {
           p_account?: string
@@ -414,6 +622,11 @@ export type Database = {
         }
         Returns: string
       }
+      resolve_demo_battle_winner: {
+        Args: { p_battle: string; p_reason: string; p_winner: string }
+        Returns: undefined
+      }
+      resolve_expired_battles: { Args: never; Returns: number }
       set_room_code: {
         Args: { p_battle: string; p_code: string }
         Returns: undefined
