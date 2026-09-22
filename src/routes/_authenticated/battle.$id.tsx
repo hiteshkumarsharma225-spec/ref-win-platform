@@ -96,8 +96,8 @@ function BattleRoom() {
       qc.invalidateQueries();
       const msg: Record<string, string> = {
         result_pending: "Result submitted. Waiting for your opponent.",
-        completed: "Match settled — check your wallet!",
-        cancelled: "Match cancelled, entry refunded.",
+        completed: "Match completed — virtual credits updated.",
+        cancelled: "Match cancelled — virtual credits refunded.",
         disputed: "Results don't match. Sent to review team.",
       };
       toast.success(msg[state] ?? "Result submitted");
@@ -226,7 +226,7 @@ function BattleRoom() {
           ) : (
             <>
               <p className="mb-3 text-xs text-muted-foreground">
-                Upload a winning screenshot if you won. False claims lead to a penalty.
+                Upload a winning screenshot if you won. Results are verified server-side.
               </p>
               <div className="grid grid-cols-3 gap-2">
                 <Button
