@@ -139,7 +139,7 @@ function WalletPage() {
         <Receipt className="h-4 w-4 text-primary" /> Transaction history
       </Link>
 
-      <div className="mt-5">        <TabsContent value="add" className="space-y-4 pt-4">
+      <div className="mt-5">        <div className="space-y-4 pt-4">
           <div className="grid grid-cols-3 gap-2">
             {DEPOSIT_AMOUNTS.map((a) => (
               <button
@@ -234,7 +234,7 @@ function WalletPage() {
             title="Recent payment requests"
             rows={creditRequests.data ?? []}
           />
-        </TabsContent></div>
+        </div></div>
     </AppShell>
   );
 }
