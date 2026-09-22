@@ -138,7 +138,7 @@ function KycPage() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="kyc-file">Aadhaar front photo</Label>
+            <Label htmlFor="kyc-file">{docType === "pan" ? "PAN card photo" : "Aadhaar front photo"}</Label>
             <Input
               id="kyc-file"
               type="file"
