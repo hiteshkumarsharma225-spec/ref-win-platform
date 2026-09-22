@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2, Plus, Swords, Trophy } from "lucide-react";
+import { Loader2, Plus, Swords, Trophy, Timer } from "lucide-react";
 import { z } from "zod";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
@@ -126,9 +126,9 @@ function BattlesPage() {
 
       <CreateBattleDialog game={activeGame} />
 
-      {showOpen ? <Section title="Open Battles" icon={Swords} count={open.length}>
+      {showOpen ? <Section title="Open to Join" icon={Swords} count={open.length}>
         {open.length === 0 ? (
-          <Empty text="No open battles. Create one and wait for a challenger." />
+          <Empty text="No open challenges. Create one and wait up to 180 seconds for an opponent." />
         ) : (
           open.map((b) => (
             <BattleCard
@@ -158,7 +158,7 @@ function BattlesPage() {
 
       {showLive ? <Section title="Running Battles" icon={Trophy} count={running.length}>
         {running.length === 0 ? (
-          <Empty text="No running battles right now." />
+          <Empty text="No live battles right now." />
         ) : (
           running.map((b) => (
             <BattleCard
@@ -234,7 +234,7 @@ function BattleCard({
         <span>Challenge by {name}</span>
         <span>{gameName(battle.game)}</span>
       </div>
-      <div className="flex items-center justify-between">
+      {battle.status === "open" ? <OpenTimer createdAt={battle.created_at} /> : null}\n      <div className="flex items-center justify-between">
         <div>
           <p className="text-xs text-muted-foreground">Entry</p>
           <p className="font-display text-lg font-bold">{rupees(battle.amount)}</p>
@@ -249,7 +249,7 @@ function BattleCard({
   );
 }
 
-function CreateBattleDialog({ game }: { game: string }) {
+function OpenTimer({ createdAt }: { createdAt: string }) {\n  const [remaining, setRemaining] = useState(180);\n  useState(() => {\n    const tick = () => setRemaining(Math.max(0, 180 - Math.floor((Date.now() - new Date(createdAt).getTime()) / 1000)));\n    tick();\n    const id = window.setInterval(tick, 1000);\n    return () => window.clearInterval(id);\n  });\n  const mm = String(Math.floor(remaining / 60)).padStart(2, "0");\n  const ss = String(remaining % 60).padStart(2, "0");\n  return (\n    <div className="mb-3 flex items-center gap-1 text-[11px] text-muted-foreground">\n      <Timer className="h-3 w-3" /> Expires in {mm}:{ss}\n    </div>\n  );\n}\n\nfunction CreateBattleDialog({ game }: { game: string }) {
   const [openDialog, setOpenDialog] = useState(false);
   const [amount, setAmount] = useState(50);
   const [selectedGame, setSelectedGame] = useState(game);
@@ -290,7 +290,7 @@ function CreateBattleDialog({ game }: { game: string }) {
       <DialogContent className="max-w-sm">
         <DialogHeader>
           <DialogTitle className="font-display">Create Battle</DialogTitle>
-          <DialogDescription>Set your entry amount and challenge a player.</DialogDescription>
+          <DialogDescription>Use virtual credits to create a Ludo challenge. No cash payout is involved.</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -317,7 +317,7 @@ function CreateBattleDialog({ game }: { game: string }) {
           </div>
 
           <div className="space-y-2">
-            <Label>Battle amount</Label>
+            <Label>Battle entry (Virtual Credits)</Label>
             <div className="grid grid-cols-3 gap-2">
               {BATTLE_AMOUNTS.map((a) => (
                 <button
@@ -330,7 +330,7 @@ function CreateBattleDialog({ game }: { game: string }) {
                       : "border-border bg-card",
                   )}
                 >
-                  ₹{a}
+                  {a} Credits
                 </button>
               ))}
             </div>
@@ -338,20 +338,20 @@ function CreateBattleDialog({ game }: { game: string }) {
               inputMode="numeric"
               value={amount}
               onChange={(e) => setAmount(Number(e.target.value.replace(/\D/g, "")) || 0)}
-              placeholder="Custom amount"
+              placeholder="Custom credit amount"
             />
           </div>
 
           <div className="rounded-xl border border-primary/30 bg-primary/10 p-3 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Entry</span>
-              <span className="font-semibold">{rupees(amount)}</span>
+              <span className="font-semibold">{rupees(amount)} Credits</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Winning prize</span>
               <span className="font-display font-bold text-primary">{rupees(prizeFor(amount))}</span>
             </div>
-            <p className="mt-1 text-[11px] text-muted-foreground">5% platform commission applies.</p>
+            <p className="mt-1 text-[11px] text-muted-foreground">Challenge remains open for 180 seconds.</p>
           </div>
         </div>
 
@@ -361,7 +361,7 @@ function CreateBattleDialog({ game }: { game: string }) {
             onClick={() => create.mutate()}
             disabled={create.isPending || amount < 10}
           >
-            {create.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Set Battle
+            {create.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Create Challenge
           </Button>
         </DialogFooter>
       </DialogContent>
