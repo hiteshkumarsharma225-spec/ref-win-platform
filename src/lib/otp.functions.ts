@@ -2,6 +2,53 @@ import { createServerFn } from "@tanstack/react-start";
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/twilio";
 
+function directTwilioConfigured() {
+  return Boolean(process.env["TWILIO_ACCOUNT_SID"] && process.env["TWILIO_AUTH_TOKEN"] && process.env["TWILIO_VERIFY_SERVICE_SID"]);
+}
+
+function directTwilioServiceSid() {
+  const sid = process.env["TWILIO_VERIFY_SERVICE_SID"];
+  if (!sid) throw new Error("SMS service is not configured.");
+  return sid;
+}
+
+function directTwilioAuth() {
+  const accountSid = process.env["TWILIO_ACCOUNT_SID"];
+  const authToken = process.env["TWILIO_AUTH_TOKEN"];
+  if (!accountSid || !authToken) throw new Error("SMS service is not configured.");
+  return "Basic " + Buffer.from(accountSid + ":" + authToken).toString("base64");
+}
+
+async function sendTwilioVerification(phone: string) {
+  if (directTwilioConfigured()) {
+    return fetch("https://verify.twilio.com/v2/Services/" + directTwilioServiceSid() + "/Verifications", {
+      method: "POST",
+      headers: { Authorization: directTwilioAuth(), "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ To: "+91" + phone, Channel: "sms" }),
+    });
+  }
+  return fetch(GATEWAY_URL + "/verify/v2/Services/" + serviceSid() + "/Verifications", {
+    method: "POST",
+    headers: twilioHeaders(),
+    body: new URLSearchParams({ To: "+91" + phone, Channel: "sms" }),
+  });
+}
+
+async function verifyTwilioCode(phone: string, code: string) {
+  if (directTwilioConfigured()) {
+    return fetch("https://verify.twilio.com/v2/Services/" + directTwilioServiceSid() + "/VerificationCheck", {
+      method: "POST",
+      headers: { Authorization: directTwilioAuth(), "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ To: "+91" + phone, Code: code }),
+    });
+  }
+  return fetch(GATEWAY_URL + "/verify/v2/Services/" + serviceSid() + "/VerificationCheck", {
+    method: "POST",
+    headers: twilioHeaders(),
+    body: new URLSearchParams({ To: "+91" + phone, Code: code }),
+  });
+}
+
 const phoneSchema = (phone: unknown) => {
   if (typeof phone !== "string" || !/^[6-9]\d{9}$/.test(phone)) {
     throw new Error("Enter a valid 10-digit Indian mobile number.");
@@ -45,11 +92,7 @@ function friendlyTwilioError(status: number, body: string) {
 export const sendPhoneOtp = createServerFn({ method: "POST" })
   .inputValidator((data: { phone: string }) => ({ phone: phoneSchema(data?.phone) }))
   .handler(async ({ data }) => {
-    const res = await fetch(`${GATEWAY_URL}/verify/v2/Services/${serviceSid()}/Verifications`, {
-      method: "POST",
-      headers: twilioHeaders(),
-      body: new URLSearchParams({ To: `+91${data.phone}`, Channel: "sms" }),
-    });
+    const res = await sendTwilioVerification(data.phone);
     if (!res.ok) {
       const text = await res.text();
       console.error(`Twilio send failed [${res.status}]: ${text}`);
@@ -70,11 +113,7 @@ export const verifyPhoneOtp = createServerFn({ method: "POST" })
     };
   })
   .handler(async ({ data }) => {
-    const res = await fetch(`${GATEWAY_URL}/verify/v2/Services/${serviceSid()}/VerificationCheck`, {
-      method: "POST",
-      headers: twilioHeaders(),
-      body: new URLSearchParams({ To: `+91${data.phone}`, Code: data.code }),
-    });
+    const res = await verifyTwilioCode(data.phone, data.code);
     const text = await res.text();
     if (!res.ok) {
       console.error(`Twilio check failed [${res.status}]: ${text}`);
