@@ -1,8 +1,10 @@
-import { Link, useRouterState } from "@tanstack/react-router";
-import { Gamepad2, Home, Users, User, Wallet } from "lucide-react";
+import { Link, useRouter, useRouterState } from "@tanstack/react-router";
+import { ArrowLeft, Gamepad2, Home, Users, User, Wallet } from "lucide-react";
+import { useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { useUser, useWallet, walletTotal } from "@/lib/account";
+import { useQueryClient } from "@tanstack/react-query";
 import { rupees } from "@/lib/game";
 
 const TABS = [
@@ -24,7 +26,53 @@ export function AppShell({
 }) {
   const { user } = useUser();
   const { data: wallet } = useWallet(user?.id);
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const [pullDistance, setPullDistance] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
+  const touchStart = useRef<number | null>(null);
+  const refreshingRef = useRef(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+
+  const goBack = () => {
+    if (window.history.length > 1) router.history.back();
+    else router.navigate({ to: "/" });
+  };
+
+  const refreshPage = async () => {
+    if (refreshingRef.current) return;
+    refreshingRef.current = true;
+    setRefreshing(true);
+    try {
+      await Promise.all([
+        router.invalidate(),
+        queryClient.invalidateQueries(),
+      ]);
+    } finally {
+      setPullDistance(0);
+      setRefreshing(false);
+      refreshingRef.current = false;
+    }
+  };
+
+  const onTouchStart = (event: React.TouchEvent<HTMLElement>) => {
+    if (window.scrollY <= 2 && !refreshingRef.current) {
+      touchStart.current = event.touches[0]?.clientY ?? null;
+    }
+  };
+  const onTouchMove = (event: React.TouchEvent<HTMLElement>) => {
+    if (touchStart.current === null || window.scrollY > 2 || refreshingRef.current) return;
+    const distance = Math.max(0, Math.min(110, (event.touches[0]?.clientY ?? 0) - touchStart.current));
+    if (distance > 0) {
+      setPullDistance(distance);
+      if (distance > 8) event.preventDefault();
+    }
+  };
+  const onTouchEnd = () => {
+    if (touchStart.current !== null && pullDistance >= 70) void refreshPage();
+    touchStart.current = null;
+    if (!refreshingRef.current) setPullDistance(0);
+  };
 
   return (
     <div className="min-h-screen w-full bg-background">
@@ -94,8 +142,30 @@ export function AppShell({
 
       {/* Mobile layout */}
       <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-background lg:hidden">
-        <header className="sticky top-0 z-30 border-b border-border/60 bg-background/95 backdrop-blur">
-          <div className="flex items-center justify-between px-4 py-3">
+        {pathname !== "/" ? (
+          <button
+            type="button"
+            onClick={goBack}
+            aria-label="Go back"
+            className="fixed left-3 top-3 z-50 flex h-9 w-9 items-center justify-center rounded-full border border-border/60 bg-card/95 text-foreground shadow-sm backdrop-blur"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+        ) : null}
+        {pullDistance > 0 || refreshing ? (
+          <div className="pointer-events-none fixed inset-x-0 top-0 z-[60] flex justify-center pt-2">
+            <div className="rounded-full border border-primary/30 bg-card/95 px-3 py-1 text-xs font-semibold text-primary shadow-sm backdrop-blur">
+              {refreshing ? "Refreshing…" : pullDistance >= 70 ? "Release to refresh" : "Pull to refresh"}
+            </div>
+          </div>
+        ) : null}
+        <header
+          className="sticky top-0 z-30 border-b border-border/60 bg-background/95 backdrop-blur"
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+        >
+          <div className="flex items-center justify-between px-4 py-3 pl-14">
             <Link to="/" className="flex items-center gap-2">
               <span className="gold-gradient flex h-8 w-8 items-center justify-center rounded-lg text-base font-bold text-primary-foreground">
                 म
@@ -116,7 +186,7 @@ export function AppShell({
           </div>
         </header>
 
-        <main className="flex-1 px-4 pb-28 pt-4">{children}</main>
+        <main className="flex-1 px-4 pb-28 pt-4" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} style={{ overscrollBehaviorY: "contain" }}>{children}</main>
 
         <nav className="fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-md border-t border-border/60 bg-card/95 backdrop-blur">
           <div className="grid grid-cols-5">
