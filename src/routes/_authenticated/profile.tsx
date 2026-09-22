@@ -4,6 +4,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { BookOpen, HelpCircle, LogOut, ShieldCheck, User, LockKeyhole, Fingerprint } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsAdmin, useProfile, useUser } from "@/lib/account";
 
