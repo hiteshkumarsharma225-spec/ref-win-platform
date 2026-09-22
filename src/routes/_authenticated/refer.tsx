@@ -50,10 +50,10 @@ function ReferPage() {
   const total = (earnings.data ?? []).reduce((s, e) => s + Number(e.amount), 0);
 
   const share = async () => {
-    const text = `Join my FunBattle arena and play Ludo practice battles! Use my code ${profile?.referral_code} 👉 ${link}`;
+    const text = `Join my REAL LUDO PLAYER arena and play Ludo practice battles! Use my code ${profile?.referral_code} 👉 ${link}`;
     if (navigator.share) {
       try {
-        await navigator.share({ title: "FunBattle", text, url: link });
+        await navigator.share({ title: "REAL LUDO PLAYER", text, url: link });
         return;
       } catch {
         /* user cancelled */
