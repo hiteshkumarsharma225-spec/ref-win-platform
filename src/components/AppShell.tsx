@@ -3,6 +3,7 @@ import { Gamepad2, Home, Users, User, Wallet } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { useUser, useWallet, walletTotal } from "@/lib/account";
+import { rupees } from "@/lib/game";
 
 const TABS = [
   { to: "/", label: "Home", icon: Home },
