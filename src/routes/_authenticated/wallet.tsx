@@ -26,6 +26,7 @@ function WalletPage() {
   const [depositAmount, setDepositAmount] = useState(100);
   const [utr, setUtr] = useState("");
   const [qrDataUrl, setQrDataUrl] = useState("");
+  const [withdrawAmount, setWithdrawAmount] = useState(100);
 
   const paymentSettings = useQuery({
     queryKey: ["payment-settings"],
@@ -89,6 +90,53 @@ function WalletPage() {
       cancelled = true;
     };
   }, [paymentSettings.data, depositAmount]);
+
+  const creditWithdrawals = useQuery({
+    queryKey: ["virtual-credit-withdrawals", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("virtual_credit_withdrawals")
+        .select("id,amount,status,created_at,approved_at,completed_at")
+        .eq("user_id", user!.id)
+        .order("created_at", { ascending: false })
+        .limit(10);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const requestCreditWithdrawal = useMutation({
+    mutationFn: async () => {
+      if (withdrawAmount <= 0) throw new Error("Enter a valid credit amount.");
+      const { error } = await supabase.rpc("request_virtual_credit_withdrawal", {
+        p_amount: withdrawAmount,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setWithdrawAmount(100);
+      qc.invalidateQueries({ queryKey: ["virtual-credit-withdrawals", user?.id] });
+      qc.invalidateQueries({ queryKey: ["wallet", user?.id] });
+      toast.success("Virtual-credit withdrawal request submitted", {
+        description: "This is an internal, non-cashable credit request. No money is paid out.",
+      });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const cancelCreditWithdrawal = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.rpc("cancel_virtual_credit_withdrawal", { p_id: id });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["virtual-credit-withdrawals", user?.id] });
+      qc.invalidateQueries({ queryKey: ["wallet", user?.id] });
+      toast.success("Request cancelled and credits restored.");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const submitCreditRequest = useMutation({
     mutationFn: async () => {
@@ -234,6 +282,64 @@ function WalletPage() {
             title="Recent payment requests"
             rows={creditRequests.data ?? []}
           />
+
+          <div className="rounded-2xl border border-primary/20 bg-card p-4">
+            <div className="flex items-center gap-2">
+              <ArrowDownToLine className="h-5 w-5 text-primary" />
+              <div>
+                <p className="font-display font-bold">Withdraw Credits</p>
+                <p className="text-xs text-muted-foreground">Internal virtual-credit request only</p>
+              </div>
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Requested credits are reserved from your virtual balance. They are not converted to cash,
+              sent to UPI/bank accounts, or otherwise paid out as money.
+            </p>
+            <div className="mt-3 flex gap-2">
+              <Input
+                inputMode="numeric"
+                value={withdrawAmount || ""}
+                onChange={(e) => setWithdrawAmount(Number(e.target.value.replace(/\D/g, "")) || 0)}
+                placeholder="Credits"
+              />
+              <Button
+                onClick={() => requestCreditWithdrawal.mutate()}
+                disabled={requestCreditWithdrawal.isPending || withdrawAmount < 1 || withdrawAmount > Number(wallet?.bonus_cash ?? 0)}
+              >
+                {requestCreditWithdrawal.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                Request
+              </Button>
+            </div>
+            {creditWithdrawals.data?.length ? (
+              <div className="mt-4 space-y-2">
+                <p className="text-sm font-semibold">Credit request history</p>
+                {creditWithdrawals.data.map((w) => (
+                  <div key={w.id} className="rounded-xl border border-border/60 p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <p className="font-semibold">{rupees(w.amount)} credits</p>
+                        <p className="text-[11px] text-muted-foreground">{new Date(w.created_at).toLocaleString("en-IN")}</p>
+                      </div>
+                      <Badge variant={w.status === "successful" ? "default" : w.status === "cancelled" ? "destructive" : "secondary"}>
+                        {w.status}
+                      </Badge>
+                    </div>
+                    {w.status === "pending" ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="mt-2"
+                        onClick={() => cancelCreditWithdrawal.mutate(w.id)}
+                        disabled={cancelCreditWithdrawal.isPending}
+                      >
+                        Cancel & Restore Credits
+                      </Button>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </div>
         </div></div>
     </AppShell>
   );
