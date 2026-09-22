@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { ReactNode } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Coins, Eye, Loader2, MinusCircle, PlusCircle, Search, ShieldAlert, X } from "lucide-react";
+import { Check, Coins, Eye, Loader2, MinusCircle, PlusCircle, Search, ShieldAlert, X, UserRound, UserX } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +22,7 @@ function AdminPage() {
   const [userSearch, setUserSearch] = useState("");
   const [adjustAmount, setAdjustAmount] = useState(100);
   const [adminNote, setAdminNote] = useState<Record<string,string>>({});
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
   const enabled = !!user && !!isAdmin;
 
@@ -104,8 +105,28 @@ function AdminPage() {
     onSuccess:()=>{qc.invalidateQueries({queryKey:["admin-payment-requests"]});toast.success("Payment rejected");},onError:(e:Error)=>toast.error(e.message)
   });
   const adminUsers=useQuery({
-    queryKey:["admin-wallet-users",userSearch],enabled:enabled&&userSearch.trim().length>=2,
-    queryFn:async()=>{const q=userSearch.trim();const {data,error}=await supabase.from("profiles").select("id,username,phone").or("username.ilike.%"+q+"%,phone.ilike.%"+q+"%").limit(20);if(error)throw error;const ids=(data??[]).map(x=>x.id);const {data:wallets}=ids.length?await supabase.from("wallets").select("user_id,bonus_cash").in("user_id",ids):{data:[]};const map=new Map((wallets??[]).map(x=>[x.user_id,x]));return (data??[]).map(x=>({...x,wallet:map.get(x.id)}));}
+    queryKey:["admin-users",userSearch],
+    enabled,
+    queryFn:async()=>{
+      let q=supabase.from("profiles").select("id,username,phone,kyc_status,battles_won,battles_lost,created_at,is_active").order("created_at",{ascending:false}).limit(500);
+      const term=userSearch.trim();
+      if(term) q=q.or("username.ilike.%"+term+"%,phone.ilike.%"+term+"%");
+      const {data,error}=await q;
+      if(error)throw error;
+      const ids=(data??[]).map(x=>x.id);
+      const {data:wallets}=ids.length?await supabase.from("wallets").select("user_id,bonus_cash").in("user_id",ids):{data:[]};
+      const map=new Map((wallets??[]).map(x=>[x.user_id,x]));
+      return (data??[]).map(x=>({...x,wallet:map.get(x.id)}));
+    },
+    refetchInterval:10000,
+  });
+  const setUserActive=useMutation({
+    mutationFn:async({userId,active}:{userId:string;active:boolean})=>{
+      const {error}=await supabase.rpc("admin_set_user_active",{p_user:userId,p_active:active});
+      if(error)throw error;
+    },
+    onSuccess:(_,vars)=>{qc.invalidateQueries({queryKey:["admin-users"]});toast.success(vars.active?"User activated":"User deactivated");},
+    onError:(e:Error)=>toast.error(e.message),
   });
   const adjust=useMutation({
     mutationFn:async({userId,delta}:{userId:string,delta:number})=>{const {error}=await supabase.rpc("admin_adjust_demo_credits",{p_user:userId,p_delta:delta,p_note:"Admin virtual-credit adjustment"});if(error)throw error;},
@@ -160,7 +181,39 @@ function AdminPage() {
 
     {tab==="kyc"&&<Section title="KYC Verification" subtitle="Review submitted identity documents.">{(kyc.data??[]).map(k=><Card key={k.id}><div className="flex justify-between"><div><p className="font-semibold">{k.full_name}</p><p className="text-xs text-muted-foreground">{k.doc_type} · {k.doc_number}</p></div><Badge>{k.status}</Badge></div><div className="mt-3 flex flex-wrap gap-2">{[["Front",k.document_front_url],["Back",k.document_back_url],["PAN",k.pan_document_url]].filter(([,u])=>!!u).map(([label,url])=><Button key={label} size="sm" variant="outline" onClick={async()=>{const {data,error}=await supabase.storage.from("kyc-docs").createSignedUrl(String(url),600);if(error)toast.error(error.message);else window.open(data.signedUrl,"_blank","noopener,noreferrer");}}><Eye className="h-4 w-4"/>View {label}</Button>)}</div>{k.status==="pending"&&<div className="mt-3 grid grid-cols-2 gap-2"><Button onClick={()=>reviewKyc.mutate({id:k.id,status:"approved"})}>Approve</Button><Button variant="outline" onClick={()=>reviewKyc.mutate({id:k.id,status:"rejected"})}>Reject</Button></div>}</Card>)}{!(kyc.data??[]).length&&<Empty text="No KYC submissions."/>}</Section>}
 
-    {tab==="users"&&<Section title="Player Management" subtitle="Search players and adjust virtual credits."><div className="flex gap-2"><div className="relative flex-1"><Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground"/><input value={userSearch} onChange={e=>setUserSearch(e.target.value)} placeholder="Username or phone" className="h-10 w-full rounded-lg border border-border bg-card pl-9 pr-3 text-sm"/></div><input inputMode="numeric" value={adjustAmount} onChange={e=>setAdjustAmount(Number(e.target.value.replace(/\D/g,""))||0)} className="h-10 w-24 rounded-lg border border-border bg-card px-3 text-sm"/></div>{(adminUsers.data??[]).map(u=><Card key={u.id}><div className="flex justify-between"><div><p className="font-semibold">{u.username}</p><p className="text-xs text-muted-foreground">{u.phone}</p></div><p className="font-bold">{Number(u.wallet?.bonus_cash??0).toLocaleString("en-IN")} credits</p></div><div className="mt-3 grid grid-cols-2 gap-2"><Button disabled={!adjustAmount||adjust.isPending} onClick={()=>adjust.mutate({userId:u.id,delta:adjustAmount})}><PlusCircle className="h-4 w-4"/>Add</Button><Button variant="outline" disabled={!adjustAmount||adjust.isPending} onClick={()=>adjust.mutate({userId:u.id,delta:-adjustAmount})}><MinusCircle className="h-4 w-4"/>Deduct</Button></div></Card>)}</Section>}
+    {tab==="users"&&<Section title="User Management" subtitle="All registered players. View profile details, KYC status, match record and account state.">
+      <div className="flex gap-2">
+        <div className="relative flex-1"><Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground"/><input value={userSearch} onChange={e=>setUserSearch(e.target.value)} placeholder="Search username or phone" className="h-10 w-full rounded-lg border border-border bg-card pl-9 pr-3 text-sm"/></div>
+        <input inputMode="numeric" value={adjustAmount} onChange={e=>setAdjustAmount(Number(e.target.value.replace(/\D/g,""))||0)} className="h-10 w-24 rounded-lg border border-border bg-card px-3 text-sm" aria-label="Credit adjustment amount"/>
+      </div>
+      <div className="text-xs text-muted-foreground">{adminUsers.data?.length??0} users loaded · Deactivation preserves historical matches.</div>
+      {(adminUsers.data??[]).map(u=><Card key={u.id}>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2"><UserRound className="h-4 w-4 text-primary"/><p className="font-semibold truncate">{u.username}</p><Badge variant={u.is_active?"default":"destructive"}>{u.is_active?"Active":"Inactive"}</Badge></div>
+            <p className="text-xs text-muted-foreground">{u.phone}</p>
+            <p className="mt-1 text-[11px] text-muted-foreground">Joined {new Date(u.created_at).toLocaleDateString("en-IN")} · Won {u.battles_won} · Lost {u.battles_lost}</p>
+          </div>
+          <p className="shrink-0 font-bold">{Number(u.wallet?.bonus_cash??0).toLocaleString("en-IN")} credits</p>
+        </div>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Badge variant={u.kyc_status==="approved"?"default":u.kyc_status==="rejected"?"destructive":"secondary"}>KYC: {u.kyc_status}</Badge>
+          <Button size="sm" variant="outline" onClick={()=>setSelectedUserId(selectedUserId===u.id?null:u.id)}><Eye className="h-4 w-4"/>{selectedUserId===u.id?"Hide":"View"}</Button>
+          <Button size="sm" disabled={!adjustAmount||adjust.isPending} onClick={()=>adjust.mutate({userId:u.id,delta:adjustAmount})}><PlusCircle className="h-4 w-4"/>Add</Button>
+          <Button size="sm" variant="outline" disabled={!adjustAmount||adjust.isPending} onClick={()=>adjust.mutate({userId:u.id,delta:-adjustAmount})}><MinusCircle className="h-4 w-4"/>Deduct</Button>
+          <Button size="sm" variant={u.is_active?"destructive":"outline"} disabled={setUserActive.isPending||u.id===user?.id} onClick={()=>setUserActive.mutate({userId:u.id,active:!u.is_active})}><UserX className="h-4 w-4"/>{u.is_active?"Deactivate":"Activate"}</Button>
+        </div>
+        {selectedUserId===u.id&&<div className="mt-3 rounded-xl border border-border/60 bg-secondary/30 p-3 text-sm">
+          <p><span className="text-muted-foreground">User ID:</span> {u.id}</p>
+          <p><span className="text-muted-foreground">Phone:</span> {u.phone}</p>
+          <p><span className="text-muted-foreground">KYC:</span> {u.kyc_status} — verify/review from the KYC tab.</p>
+          <p><span className="text-muted-foreground">Match record:</span> {u.battles_won} wins / {u.battles_lost} losses.</p>
+          <p><span className="text-muted-foreground">Credits:</span> {Number(u.wallet?.bonus_cash??0).toLocaleString("en-IN")}</p>
+          <p className="mt-2 text-xs text-muted-foreground">Permanent account deletion is intentionally not exposed here because it can destroy audit/history records; Deactivate preserves the user's match history.</p>
+        </div>}
+      </Card>)}
+      {!(adminUsers.data??[]).length&&<Empty text={userSearch?"No matching users.":"No users found."}/>}
+    </Section>}
   </AppShell>;
 }
 
