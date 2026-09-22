@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2, ShieldCheck } from "lucide-react";
+import { Loader2, ShieldCheck, CheckCircle2 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,9 @@ function KycPage() {
   const [docType, setDocType] = useState("aadhaar");
   const [fullName, setFullName] = useState("");
   const [docNumber, setDocNumber] = useState("");
+  const [mobile, setMobile] = useState(profile?.phone ?? "");
+  const [frontFile, setFrontFile] = useState<File | null>(null);
+  const [backFile, setBackFile] = useState<File | null>(null);
   const [file, setFile] = useState<File | null>(null);
 
   const submissions = useQuery({
@@ -43,7 +46,8 @@ function KycPage() {
     mutationFn: async () => {
       if (!user) throw new Error("Please sign in again.");
       if (!fullName.trim()) throw new Error("Enter your full name as on the document.");
-      if (docNumber.trim().length < 6) throw new Error("Enter a valid document number.");
+      if (!mobile.match(/^[6-9]\\d{9}$/)) throw new Error("Enter a valid 10-digit mobile number.");
+      if (docType === "aadhaar" && (!/^\\d{12}$/.test(docNumber.replace(/\\D/g, "")) || !frontFile || !backFile)) throw new Error("Aadhaar number and front/back photos are required.");
 
       let docUrl: string | null = null;
       if (file) {
@@ -59,12 +63,15 @@ function KycPage() {
         doc_number: docNumber.trim(),
         full_name: fullName.trim(),
         doc_url: docUrl,
+        mobile_number: mobile,
+        document_front_url: docUrl,
+        document_back_url: backFile ? backFile.name : null,
       });
       if (error) throw error;
     },
     onSuccess: () => {
       setDocNumber("");
-      setFile(null);
+      setFrontFile(null); setBackFile(null);
       qc.invalidateQueries();
       toast.success("KYC submitted", { description: "We review documents within 24 hours." });
     },
@@ -79,7 +86,7 @@ function KycPage() {
 
       <div className="glow-gold rounded-2xl bg-card p-5">
         <div className="flex items-center gap-3">
-          <ShieldCheck className="h-6 w-6 text-primary" />
+          {status === "approved" ? <CheckCircle2 className="h-6 w-6 text-success" /> : <ShieldCheck className="h-6 w-6 text-primary" />}
           <div>
             <p className="text-xs text-muted-foreground">Current status</p>
             <p className="font-display text-lg font-bold capitalize">{status.replace("_", " ")}</p>
@@ -116,12 +123,12 @@ function KycPage() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="kyc-file">Document photo (optional)</Label>
+            <Label htmlFor="kyc-file">Aadhaar front photo</Label>
             <Input
               id="kyc-file"
               type="file"
-              accept="image/*,application/pdf"
-              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              accept="image/*"
+              onChange={(e) => setFrontFile(e.target.files?.[0] ?? null)}
             />
           </div>
 
