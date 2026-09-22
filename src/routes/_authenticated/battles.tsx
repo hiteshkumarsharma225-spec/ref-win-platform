@@ -234,13 +234,14 @@ function BattleCard({
         <span>Challenge by {name}</span>
         <span>{gameName(battle.game)}</span>
       </div>
-      {battle.status === "open" ? <OpenTimer createdAt={battle.created_at} /> : null}\n      <div className="flex items-center justify-between">
+      {battle.status === "open" ? <OpenTimer createdAt={battle.created_at} /> : null}
+      <div className="flex items-center justify-between">
         <div>
-          <p className="text-xs text-muted-foreground">Entry</p>
+          <p className="text-xs text-muted-foreground">Entry Credits</p>
           <p className="font-display text-lg font-bold">{rupees(battle.amount)}</p>
         </div>
         <div>
-          <p className="text-xs text-muted-foreground">Prize</p>
+          <p className="text-xs text-muted-foreground">Virtual Reward</p>
           <p className="font-display text-lg font-bold text-accent">{rupees(battle.prize)}</p>
         </div>
         {action}
@@ -249,7 +250,24 @@ function BattleCard({
   );
 }
 
-function OpenTimer({ createdAt }: { createdAt: string }) {\n  const [remaining, setRemaining] = useState(180);\n  useState(() => {\n    const tick = () => setRemaining(Math.max(0, 180 - Math.floor((Date.now() - new Date(createdAt).getTime()) / 1000)));\n    tick();\n    const id = window.setInterval(tick, 1000);\n    return () => window.clearInterval(id);\n  });\n  const mm = String(Math.floor(remaining / 60)).padStart(2, "0");\n  const ss = String(remaining % 60).padStart(2, "0");\n  return (\n    <div className="mb-3 flex items-center gap-1 text-[11px] text-muted-foreground">\n      <Timer className="h-3 w-3" /> Expires in {mm}:{ss}\n    </div>\n  );\n}\n\nfunction CreateBattleDialog({ game }: { game: string }) {
+function OpenTimer({ createdAt }: { createdAt: string }) {
+  const [remaining, setRemaining] = useState(180);
+  useEffect(() => {
+    const tick = () => setRemaining(Math.max(0, 180 - Math.floor((Date.now() - new Date(createdAt).getTime()) / 1000)));
+    tick();
+    const id = window.setInterval(tick, 1000);
+    return () => window.clearInterval(id);
+  }, [createdAt]);
+  const mm = String(Math.floor(remaining / 60)).padStart(2, "0");
+  const ss = String(remaining % 60).padStart(2, "0");
+  return (
+    <div className="mb-3 flex items-center gap-1 text-[11px] text-muted-foreground">
+      <Timer className="h-3 w-3" /> Expires in {mm}:{ss}
+    </div>
+  );
+}
+
+function CreateBattleDialog({ game }: { game: string }) {
   const [openDialog, setOpenDialog] = useState(false);
   const [amount, setAmount] = useState(50);
   const [selectedGame, setSelectedGame] = useState(game);
@@ -349,7 +367,7 @@ function OpenTimer({ createdAt }: { createdAt: string }) {\n  const [remaining, 
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Winning prize</span>
-              <span className="font-display font-bold text-primary">{rupees(prizeFor(amount))}</span>
+              <span className="font-display font-bold text-primary">{rupees(prizeFor(amount))} Credits</span>
             </div>
             <p className="mt-1 text-[11px] text-muted-foreground">Challenge remains open for 180 seconds.</p>
           </div>
