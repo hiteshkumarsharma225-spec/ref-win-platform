@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS public.virtual_credit_withdrawals (
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   amount numeric(12,2) NOT NULL CHECK (amount > 0),
   status text NOT NULL DEFAULT 'pending'
-    CHECK (status IN ('pending','processed','successful')),
+    CHECK (status IN ('pending','processed','successful','cancelled')),
   created_at timestamptz NOT NULL DEFAULT now(),
   approved_at timestamptz,
   completed_at timestamptz,
@@ -80,7 +80,7 @@ BEGIN
 
   IF v_amount IS NULL THEN RAISE EXCEPTION 'Withdrawal cannot be cancelled'; END IF;
 
-  UPDATE virtual_credit_withdrawals SET status = 'successful' WHERE id = p_id AND status = 'pending';
+  UPDATE virtual_credit_withdrawals SET status = 'cancelled' WHERE id = p_id AND status = 'pending';
   UPDATE wallets SET bonus_cash = bonus_cash + v_amount, updated_at = now() WHERE user_id = auth.uid();
 END;
 $$;
