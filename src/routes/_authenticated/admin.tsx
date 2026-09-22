@@ -350,6 +350,21 @@ function AdminPage() {
               <Badge variant={k.status === "approved" ? "default" : k.status === "rejected" ? "destructive" : "secondary"}>{k.status}</Badge>
             </div>
             <p className="mt-2 text-xs text-muted-foreground">Document: {k.doc_number}</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {[
+                ["Front", k.document_front_url],
+                ["Back", k.document_back_url],
+                ["PAN", k.pan_document_url],
+              ].filter(([, url]) => !!url).map(([label, url]) => (
+                <Button key={label} size="sm" variant="outline" onClick={async () => {
+                  const { data, error } = await supabase.storage.from("kyc-docs").createSignedUrl(String(url), 600);
+                  if (error) return toast.error(error.message);
+                  window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+                }}>
+                  <Eye className="h-4 w-4" /> View {label}
+                </Button>
+              ))}
+            </div>
             {k.status === "pending" ? <div className="mt-3 grid grid-cols-2 gap-2"><Button onClick={() => reviewKyc.mutate({ id: k.id, status: "approved" })}>Approve</Button><Button variant="outline" onClick={() => reviewKyc.mutate({ id: k.id, status: "rejected" })}>Reject</Button></div> : null}
           </div>
         ))}
