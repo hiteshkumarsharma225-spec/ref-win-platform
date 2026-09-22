@@ -51,6 +51,7 @@ function BattlesPage() {
     refetchInterval: 5000,
     queryFn: async () => {
       await supabase.rpc("expire_open_battles");
+      await supabase.rpc("resolve_expired_battles");
       const { data, error } = await supabase
         .from("battles")
         .select("id, game, amount, prize, status, creator_id, opponent_id, created_at")
