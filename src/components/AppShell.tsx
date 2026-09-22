@@ -69,7 +69,7 @@ export function AppShell({
             className="m-3 flex items-center justify-between rounded-xl border border-primary/30 bg-primary/10 px-4 py-3"
           >
             <span className="text-xs text-muted-foreground">Virtual Credits</span>
-            <span className="font-semibold text-primary">{rupees(walletTotal(wallet))}</span>
+            <span className="font-semibold text-primary">{walletTotal(wallet)} Credits</span>
           </Link>
         ) : null}
       </aside>
