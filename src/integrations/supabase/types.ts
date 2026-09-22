@@ -348,6 +348,7 @@ export type Database = {
           battles_won: number
           created_at: string
           id: string
+          is_active: boolean
           kyc_status: Database["public"]["Enums"]["kyc_status"]
           phone: string
           referral_code: string
@@ -360,6 +361,7 @@ export type Database = {
           battles_won?: number
           created_at?: string
           id: string
+          is_active?: boolean
           kyc_status?: Database["public"]["Enums"]["kyc_status"]
           phone: string
           referral_code: string
@@ -372,6 +374,7 @@ export type Database = {
           battles_won?: number
           created_at?: string
           id?: string
+          is_active?: boolean
           kyc_status?: Database["public"]["Enums"]["kyc_status"]
           phone?: string
           referral_code?: string
@@ -616,6 +619,10 @@ export type Database = {
       }
       admin_resolve_demo_battle: {
         Args: { p_battle: string; p_winner: string }
+        Returns: undefined
+      }
+      admin_set_user_active: {
+        Args: { p_active: boolean; p_user: string }
         Returns: undefined
       }
       admin_review_kyc: {
