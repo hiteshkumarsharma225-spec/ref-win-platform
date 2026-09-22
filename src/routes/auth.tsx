@@ -18,9 +18,9 @@ export const Route = createFileRoute("/auth")({
   validateSearch: searchSchema,
   head: () => ({
     meta: [
-      { title: "Login — FunBattle" },
+      { title: "Login — REAL LUDO PLAYER" },
       { name: "description", content: "Log in or register with your mobile number using OTP authentication." },
-      { property: "og:title", content: "Login — FunBattle" },
+      { property: "og:title", content: "Login — REAL LUDO PLAYER" },
       { property: "og:description", content: "Log in or register with your mobile number using OTP authentication." },
     ],
   }),
