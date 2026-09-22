@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronRight, Flame, ShieldCheck, Trophy, Zap } from "lucide-react";
+import { ChevronRight, Dices, Flame, ShieldCheck, Trophy, Zap } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { GAMES, rupees } from "@/lib/game";
@@ -97,10 +97,10 @@ function Home() {
             key={game.id}
             to="/battles"
             search={{ game: game.id }}
-            className="flex items-center gap-4 rounded-2xl border border-border/60 bg-card p-4 transition-colors active:bg-secondary"
+            className="group flex items-center gap-4 rounded-2xl border border-border/60 bg-card p-4 transition-all hover:border-primary/50 hover:bg-secondary/40 active:bg-secondary"
           >
-            <div className="gold-gradient flex h-14 w-14 shrink-0 items-center justify-center rounded-xl text-2xl">
-              {game.emoji}
+            <div className="gold-gradient flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl shadow-lg shadow-primary/10">
+              <Dices className="h-11 w-11 text-background drop-shadow-md" strokeWidth={2.4} />
             </div>
             <div className="min-w-0 flex-1">
               <p className="font-display font-bold">{game.name}</p>
