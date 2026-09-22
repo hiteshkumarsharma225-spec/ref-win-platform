@@ -1,9 +1,12 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useUser } from "@/lib/account";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { AppShell } from "@/components/AppShell";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Upload, MessageSquareWarning } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { rupees } from "@/lib/game";
 import { cn } from "@/lib/utils";
@@ -33,6 +36,10 @@ const FILTERS = [
 function TransactionsPage() {
   const [filter, setFilter] = useState("all");
   const { user } = useUser();
+  const [complaintBattle, setComplaintBattle] = useState<string | null>(null);
+  const [complaintText, setComplaintText] = useState("");
+  const [complaintProof, setComplaintProof] = useState("");
+  const complaintFile = useRef<HTMLInputElement>(null);
 
   const txns = useQuery({
     queryKey: ["transactions", filter],
@@ -156,6 +163,24 @@ function TransactionsPage() {
               <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
                 <div><p className="text-muted-foreground">Entry</p><p className="font-semibold">{rupees(b.amount)} Credits</p></div>
                 <div><p className="text-muted-foreground">{isWinner ? "Reward" : "Virtual Reward"}</p><p className="font-semibold text-accent">{rupees(b.prize)} Credits</p></div>
+              </div>
+              <div className="mt-3 border-t border-border/50 pt-3">
+                {complaintBattle === b.id ? (
+                  <div className="space-y-2">
+                    <textarea value={complaintText} onChange={(e) => setComplaintText(e.target.value)} placeholder="Describe your concern..." className="min-h-20 w-full rounded-xl border border-border bg-background p-3 text-xs" />
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => complaintFile.current?.click()}><Upload className="h-4 w-4" /> Upload proof</Button>
+                      {complaintProof ? <span className="self-center text-[11px] text-success">Proof attached</span> : null}
+                    </div>
+                    <input ref={complaintFile} type="file" accept="image/*" className="hidden" onChange={(e) => { const f=e.target.files?.[0]; if(f) void uploadComplaint(f); }} />
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button size="sm" onClick={() => void sendComplaint()} disabled={complaintText.trim().length < 3}>Send complaint</Button>
+                      <Button size="sm" variant="outline" onClick={() => { setComplaintBattle(null); setComplaintText(""); setComplaintProof(""); }}>Cancel</Button>
+                    </div>
+                  </div>
+                ) : (
+                  <Button size="sm" variant="outline" onClick={() => setComplaintBattle(b.id)}><MessageSquareWarning className="h-4 w-4" /> Complaint about this match</Button>
+                )}
               </div>
             </div>
           );
