@@ -1,6 +1,7 @@
 import { Link, useRouter, useRouterState } from "@tanstack/react-router";
+import { App as CapacitorApp } from "@capacitor/app";
 import { ArrowLeft, Gamepad2, Home, Users, User, Wallet } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { useUser, useWallet, walletTotal } from "@/lib/account";
@@ -33,6 +34,20 @@ export function AppShell({
   const touchStart = useRef<number | null>(null);
   const refreshingRef = useRef(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+
+  useEffect(() => {
+    let remove: (() => void) | undefined;
+    void CapacitorApp.addListener("backButton", ({ canGoBack }) => {
+      if (window.history.length > 1 && canGoBack) {
+        router.history.back();
+      } else if (pathname !== "/") {
+        router.navigate({ to: "/" });
+      } else {
+        void CapacitorApp.exitApp();
+      }
+    }).then((handle) => { remove = () => handle.remove(); });
+    return () => remove?.();
+  }, [router, pathname]);
 
   const goBack = () => {
     if (window.history.length > 1) router.history.back();
