@@ -52,6 +52,7 @@ function createSupabaseClient() {
       storage: brokeredPreviewStorage(),
       persistSession: true,
       autoRefreshToken: true,
+      experimental: { passkey: true },
     },
   });
 }
