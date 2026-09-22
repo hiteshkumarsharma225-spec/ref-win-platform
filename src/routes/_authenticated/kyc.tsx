@@ -46,8 +46,8 @@ function KycPage() {
     mutationFn: async () => {
       if (!user) throw new Error("Please sign in again.");
       if (!fullName.trim()) throw new Error("Enter your full name as on the document.");
-      if (!mobile.match(/^[6-9]\\d{9}$/)) throw new Error("Enter a valid 10-digit mobile number.");
-      if (docType === "aadhaar" && (!/^\\d{12}$/.test(docNumber.replace(/\\D/g, "")) || !frontFile || !backFile)) throw new Error("Aadhaar number and front/back photos are required.");
+      if (!mobile.match(/^[6-9]\d{9}$/)) throw new Error("Enter a valid 10-digit mobile number.");
+      if (docType === "aadhaar" && (!/^\d{12}$/.test(docNumber.replace(/\D/g, "")) || !frontFile || !backFile)) throw new Error("Aadhaar number and front/back photos are required.");
 
       const upload = async (selected: File, label: string) => {
         const path = user.id + "/" + Date.now() + "-" + label + "-" + selected.name.replace(/[^\\w.-]/g, "");
@@ -64,7 +64,7 @@ function KycPage() {
         frontUrl = await upload(frontFile!, "aadhaar-front");
         backUrl = await upload(backFile!, "aadhaar-back");
       } else {
-        if (!/^[A-Z]{5}\\d{4}[A-Z]$/.test(docNumber.trim().toUpperCase())) {
+        if (!/^[A-Z]{5}\d{4}[A-Z]$/.test(docNumber.trim().toUpperCase())) {
           throw new Error("Enter a valid PAN number.");
         }
         if (!panFile) throw new Error("PAN card photo is required.");
@@ -122,7 +122,7 @@ function KycPage() {
           </Tabs>
 
           <div className="space-y-2">
-            <Label htmlFor="kyc-name">Full name (as on document)</Label>
+            <Label htmlFor="kyc-name">{docType === "pan" ? "Name as per PAN" : "Name as per Aadhaar"}</Label>
             <Input id="kyc-name" value={fullName} onChange={(e) => setFullName(e.target.value)} />
           </div>
 
