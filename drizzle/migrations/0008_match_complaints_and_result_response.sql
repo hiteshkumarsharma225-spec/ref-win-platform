@@ -78,7 +78,7 @@ BEGIN
     UPDATE public.battles
     SET status='result_pending',
         opponent_result_deadline_at=now()+interval '15 minutes',
-        objection_deadline_at=now()+interval '15 minutes'
+        objection_deadline_at=now()+interval '5 minutes'
     WHERE id=p_battle;
     RETURN 'result_pending';
   END IF;
