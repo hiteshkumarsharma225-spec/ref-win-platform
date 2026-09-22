@@ -2,7 +2,6 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { Gamepad2, Home, Users, User, Wallet } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { rupees } from "@/lib/game";
 import { useUser, useWallet, walletTotal } from "@/lib/account";
 
 const TABS = [
